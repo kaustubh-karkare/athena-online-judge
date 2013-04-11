@@ -1,0 +1,211 @@
+
+var counter = 0;
+
+var controlgroup = function(title,input){
+	if(typeof(title)!=="string") title = "?????";
+	var top = $("<div class='control-group' style='margin-bottom:10px; padding:5px 0px;'>")
+		.append("<label class='control-label' for='df"+(++counter)+"'>")
+		.append("<div class='controls'>"); // style='display:inline-block;margin-left:20px;'
+	top.children(":first-child")
+		.html(title.htmlentities())
+		.next()
+		.append(input)
+		.children(":first-child")
+		.attr("id","df"+counter);
+	return top[0];
+};
+
+var timestamp = {
+	to : function(date,time){
+		date = date.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
+		time = time.match(/^([0-9]{2})\:([0-9]{2})$/);
+		if(date==null || time==null) return null;
+		date = date.slice(1).map(function(i){ return parseInt(i); });
+		time = time.slice(1).map(function(i){ return parseInt(i); });
+		var result = new Date(date[0],date[1]-1,date[2],time[0],time[1]);
+		return Math.floor(result);
+	},
+	from : function(result){
+		var d = new Date(result);
+		var date = d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+		var time = ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+		return [date,time];
+	}
+};
+
+var datatypes = {
+	"integer" : function(name,spec,obj,save){
+		var input = $("<input type='number'>").attr("name",name);
+		if(obj!==undefined) input.val(parseInt(obj));
+		return [function(cb){ cb(null,input[0].value); }, controlgroup(spec.title,input[0])];
+	},
+	"timestamp" : function(name,spec,obj,save){
+		var date = $("<input type='date' style='margin-bottom:5px;'>").attr("name",name+"-date");
+		var time = $("<input type='time'>").attr("name",name+"-time");
+		if(obj!==undefined){ obj = timestamp.from(obj); date.val(obj[0]); time.val(obj[1]); }
+		return [function(cb){ cb(null,timestamp.to(date[0].value,time[0].value)); }, controlgroup(spec.title,[date,"<br>",time])];
+	},
+	"string" : function(name,spec,obj,save){
+		var input = $("<input type='"+(spec.password?"password":"text")+"'>").attr("name",name);
+		if(obj!==undefined) input.val(String(obj));
+		return [function(cb){ cb(input[0].value.length?null:"empty:"+name,input[0].value); },controlgroup(spec.title,input[0])];
+	},
+	"reference" : function(name,spec,obj,save){
+		var refinput = plugin.suggestion({"initial":obj,"collection":spec.collection});
+		return [function(cb){
+			var x = refinput.value();
+			if(!spec.optional && x===undefined) cb("empty:"+name); else cb(null,x);
+		}, controlgroup(spec.title,refinput.node)];
+	},
+	"file" : function(name,spec,obj,save){
+		var fileinput = plugin.fileupload({"initial":obj});
+		save.file_interface.push(fileinput.interface);
+		return [function(cb){
+			fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
+				if(e===null && !spec.optional && r===undefined) cb("empty:"+name); else cb(e,r);
+			});
+		},controlgroup(spec.title,fileinput.node)];
+	},
+
+	"array" : function(name,spec,obj,save){
+		// special case : array of references
+		if(spec.items.type==="reference"){
+			var refinput = plugin.suggestion({"initial":obj,"collection":spec.items.collection,"multiselect":true});
+			return [function(cb){
+				var x = refinput.value();
+				if(!spec.optional && x.length===0) cb("empty:"+name); else cb(null,x);
+			}, controlgroup(spec.title,refinput.node)];
+		}
+		// special case : array of files
+		if(spec.items.type==="file"){
+			var fileinput = plugin.fileupload({"initial":obj,"multiselect":true});
+			save.file_interface.push(fileinput.interface);
+			return [function(cb){
+				fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
+					if(e===null && !spec.optional && r.length===0) cb("empty:"+name); else cb(e,r);
+				});
+			},controlgroup(spec.title,fileinput.node)];
+		}
+		// default case
+		if(!Array.isArray(obj)) obj = [];
+		var first = [], second = [], order = [];
+		// function to wrap each input and provide buttons for reordering and deletion
+		var element = function(x,i){
+			first.push(x[0]); order.push(i);
+			return $("<div style='border-radius:4px; background:rgba(248,248,248,0.9);'><div></div><div></div></div>")
+				.children().css("display","inline-block").first().append(x[1])
+				.next().append("<a class='btn'><i class='icon-move'></i></a><a class='btn'><i class='icon-remove-circle'></i></a>")
+				.children().css("margin-left","10px").css("padding","3px 6px").last().click(function(){
+					$(this).parent().parent().remove();
+					first.remove(x[0]); order.remove(i);
+					return false;
+				}).parent().parent().attr("data-order",i)[0];
+		};
+		// sequentially generate the element inputs and then wrap them
+		for(var i=0;i<obj.length;++i) second.push(generate_recursive(name+"."+i,spec.items,obj[i],save));
+		second = second.map(function(x,i){ return element(x,i); });
+		var _i = first.length;
+		// enable sorting of elements
+		var arraytop = $("<div><div></div><div></div></div>");
+		arraytop.children(":first-child").append(second).sortable({"handle":".icon-move","stop":function(){
+			var order2 = [], first2 = [];
+			arraytop.children(":first-child").children().each(function(i,e){
+				order2.push(parseInt($(e).attr("data-order")));
+			});
+			if(order.join(",")!==order2.join(",")) order = order2;
+		} });
+		// add button to add additional array items
+		arraytop.children(":last-child").append(controlgroup("",
+			$("<input type='button' class='btn' value='Add Array Element' style='width:220px;'>").click(function(){
+				var i = _i++;
+				var x = generate_recursive(name+"."+i,spec.items,undefined,save);
+				var y = element(x,i);
+				arraytop.children(":last-child").before(y);
+			})[0]
+		));
+		// wrap the list of array elements in a control group
+		second = controlgroup(spec.title,arraytop[0]);
+		return [function(cb){
+			var reordered = [];
+			for(var i=0;i<order.length;++i) reordered.push(first[order[i]]);
+			async.parallel(reordered,cb);
+		},second];
+	},
+
+	"object" : function(name,spec,obj,save){
+		if(typeof(obj)!=="object" || obj===null) obj = {};
+		var result = {};
+		for(var key in spec.items)
+			if(!spec.items[key].internal)
+				result[key] = generate_recursive(name+"."+key,spec.items[key],obj[key],save);
+		var first = {}, second = [];
+		Object.keys(result).forEach(function(key){
+			first[key] = result[key][0];
+			second.push(result[key][1]);
+		});
+		return [function(cb){ async.parallel(first,cb); },$("<div>").append(second)[0]];
+	},
+	
+	"document" : function(name,spec,obj,args){
+		var id = parseInt(typeof(obj)==="object" && obj!==null ? obj._id : null);
+		var form = $("<form name='"+name.quotes()+"' class='form-horizontal'>");
+		var save = {"file_interface":[], filetracker:{}, "file_progress":function(name,c,t){
+			save.filetracker[name] = [c,t];
+			var current=0, total=0;
+			Object.keys(save.filetracker).forEach(function(name){
+				current+=save.filetracker[name][0];
+				total+=save.filetracker[name][1];
+			});
+			// console.log(current/total);
+		}};
+		var result = generate_recursive(name,{type:"object",items:spec.items},obj,save);
+
+		// prepare handlers for submit events
+		if(typeof(args.submit)!=="function") args.submit = misc.nop;
+		var submit = function(error,result){
+			if(error){
+				save.file_interface.forEach(function(fi){ fi.cancel(); });
+				// Messenger().post({message: error, type: 'error', showCloseButton: true });
+				console.log(error);
+			} else {
+				args.submit(result);
+				form.remove(); // self-destruct now that the purpose of this form has been served
+			}
+		};
+
+		// attach the resultant DOM tree to a new form element
+		form.append("<input type='hidden' name='_id' value='"+id+"'>")
+			.append(result[1])
+			.append(controlgroup("","<input type='submit' class='btn btn-primary' style='width:220px;' value='"+(isNaN(id)?"Create New "+name.ucwords().quotes():"Modify "+name.ucwords().quotes()+" Details")+"'>"));
+		if(!isNaN(id)) form
+			.append(controlgroup("","<input type='button' class='btn btn-danger' style='width:220px;' value='Delete "+name.ucwords().quotes()+"'>"))
+			.find("input.btn-danger")
+			.click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc(name+".delete",{"_id":id},submit); });
+
+		// add handlers for submit event
+		var submitlock = false;
+		form.submit(function(){
+			if(submitlock) return false; else submitlock=true;
+			async.waterfall([
+				function(cb){ result[0](cb); },
+				function(data,cb){
+					if(!isNaN(id)) data._id = id;
+					rpc(name+(isNaN(id)?".create":".modify"),data,cb);
+				}
+			],submit);
+			submitlock=false;
+			return false;
+		});
+		return [{},form[0]];
+	}
+};
+
+var generate_recursive = function(name,spec,obj,args){
+	if(spec.type in datatypes) return datatypes[spec.type](name,spec,obj,args);
+	else return false;
+};
+
+exports = function(args){
+	if(typeof(args)!=="object" || typeof(args.spec)!=="object" || args.spec.type!=="document") return false;
+	return generate_recursive(args.name, args.spec, args.data, args)[1];
+};
