@@ -1,5 +1,5 @@
 
-var socket = exports = misc.emitter();
+var socket = exports = new misc.emitter();
 socket.itc_exclude = [];
 var link = null;
 var log = false;

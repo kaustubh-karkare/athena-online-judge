@@ -1,5 +1,5 @@
 
-var itc = exports = misc.emitter();
+var itc = exports = new misc.emitter();
 itc.$emit = itc.emit;
 
 var prefix = "athena/itc/";

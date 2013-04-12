@@ -10,7 +10,7 @@ var mongodb = require("mongodb");
 var server = new mongodb.Server(config.database.host, config.database.port, {});
 var db = exports = new mongodb.Db(config.database.name, server, {w:1});
 
-var delay = misc.deferred();
+var delay = new misc.deferred();
 delay.fail(function(){ console.log("Database Connection Error :",arguments); });
 db.open(function(e){ delay[e===null?"resolve":"reject"](); });
 db.ready = function(name){

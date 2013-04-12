@@ -2,9 +2,6 @@
 var specification = exports = {};
 
 var datatypes = {
-	"boolean" : function(name,spec,obj,callback,save){
-		callback(null,!!obj);
-	},
 	"integer" : function(name,spec,obj,callback,save){
 		obj = parseInt(obj);
 		if(isNaN(obj)) callback("corrupt:"+name);
@@ -15,7 +12,7 @@ var datatypes = {
 		if(isNaN(obj)) callback("corrupt:"+name);
 		else callback(null,obj);
 	},
-	"timestamp" : function(name,spec,obj,callback,save){ // duplicate: integer
+	"datetime" : function(name,spec,obj,callback,save){ // duplicate: integer
 		obj = parseInt(obj);
 		if(isNaN(obj)) callback("corrupt:"+name);
 		else callback(null,obj);
@@ -23,6 +20,11 @@ var datatypes = {
 	"string" : function(name,spec,obj,callback,save){
 		obj = String(obj);
 		if(!spec.optional && obj.length===0) callback("empty:"+name);
+		else callback(null,obj);
+	},
+	"select" : function(name,spec,obj,callback,save){
+		obj = String(obj);
+		if(Object.keys(spec.options).indexOf(obj)===-1) callback("corrupt:"+name);
 		else callback(null,obj);
 	},
 	"reference" : function(name,spec,obj,callback,save){
@@ -62,11 +64,11 @@ var datatypes = {
 		var result = {};
 		for(var key in spec.items)
 			if(!(key in obj)){
-				if(!save.complete) continue; // if match_select, dont assume
+				if(save.complete<2 || spec.items[key].optional) continue;
 				else if("default" in spec.items[key]) result[key] = function(key){
 					return function(cb){ match_recursive(name+"."+key,spec.items[key],spec.items[key].default,cb,save); };
-				}(key); // assume otherwise
-				else if(save.complete==2){ callback("missing:"+key); return; } // if match_complete, die
+				}(key);
+				else { callback("missing:"+key); return; }
 			} else result[key] = function(key){
 				return function(cb){ match_recursive(name+"."+key,spec.items[key],obj[key],cb,save); };
 			}(key);
@@ -100,12 +102,15 @@ specification.match_complete = function(name,spec,obj,callback){ match_common(na
 
 var verify_recursive = function(spec,callback){
 	if(typeof(spec)==="object" && spec!==null && spec.type in datatypes && spec.type!=="document"){
-		if(spec.type=="array") verify_recursive(spec.items,callback);
-		else if(spec.type=="object"){
+		if(spec.type==="array") verify_recursive(spec.items,callback);
+		else if(spec.type==="object"){
 			if(typeof(spec.items)!=="object") callback("specification-error");
 			else async.parallel(Object.keys(spec.items).map(function(key){
 				return function(cb){ verify_recursive(spec.items[key],cb); };
 			}),callback);
+		} else if(spec.type==="select"){
+			if("options" in spec && Object.keys(spec.options).length>0) callback(null);
+			else callback("specification-error");
 		} else callback(null);
 	} else callback("specification-error");
 };

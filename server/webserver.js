@@ -17,7 +17,7 @@ app.get(/^\/$/,function(req,res){
 	html.push("<title>Athena Online Judge</title>");
 	html.push("<script>var unique = "+(++unique)+";</script>");
 	html.push(fs.fileRead("./client/template/page-headers.html"));
-	html.push("<script src='./main/client.js'></script>");
+	html.push("<script src='client.js'></script>");
 	html.push("</head><body onLoad='main()'></body></html>");
 	res.send(html.join("\n"));
 });
@@ -41,9 +41,9 @@ app.get(/^\/download$/, function(req,res){
 	});
 });
 
-//app.get(/^(?:\/client\/(?:script|style|img)\/[^\/]+|\/main\/client.js)$/,function(req,res){
 app.get(/.*/,function(req,res){
-	path = "."+req.path;
+	path = "./static"+req.path;
+	if(req.path.indexOf("/code")===0) path = "."+req.path.substr(5);
 	if(fs.fileExists(path)) res.sendfile(path);
 	else res.send(404);
 });

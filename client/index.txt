@@ -4,5 +4,7 @@ delivery
 socketio
 socket
 rpc
+plugin
+widget
 display
 test

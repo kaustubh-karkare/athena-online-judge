@@ -14,20 +14,20 @@ var prefix = "delivery/";
 var counter = 0;
 var timeout = 3*1000;
 
-var delivery = exports = misc.emitter();
+var delivery = exports = new misc.emitter();
 
 delivery.$emit = delivery.emit;
 
 itc.on(prefix+"up",function(key){
 	if(leader.check()==false) return;
 	var args = Array.prototype.slice.apply(arguments,[1]);
-	itc.emit.apply(null,[prefix+"ack",key]);
+	itc.emit.apply(itc,[prefix+"ack",key]);
 	// Callback sends only once as if the follower is dead, no point.
 	var callback = function(){
 		var args = Array.prototype.slice.apply(arguments);
-		itc.emit.apply(null,[prefix+"down",key].concat(args));
+		itc.emit.apply(itc,[prefix+"down",key].concat(args));
 	};
-	delivery.$emit.apply(null,args.concat(callback));
+	delivery.$emit.apply(delivery,args.concat(callback));
 });
 
 delivery.emit = function(){
@@ -36,18 +36,18 @@ delivery.emit = function(){
 	if(typeof(callback)==="function") args.pop();
 	else callback = misc.nop;
 
-	if(leader.check()) delivery.$emit.apply(null,args.concat(callback));
+	if(leader.check()) delivery.$emit.apply(delivery,args.concat(callback));
 	else {
 		var key1 = unique+":"+(counter++);
 		// Keep sending ITC broadcasts until leader confirms.
 		var send = function send(){
-			if(!leader.check()) itc.emit.apply(null,[prefix+"up",key1].concat(args));
+			if(!leader.check()) itc.emit.apply(itc,[prefix+"up",key1].concat(args));
 			else {
 				// In case you become leader while waiting.
 				itc.off(prefix+"ack",f_ack);
 				itc.off(prefix+"down",f_down);
 				window.clearInterval(sendloop);
-				delivery.$emit.apply(null,args.concat(callback));
+				delivery.$emit.apply(delivery,args.concat(callback));
 			}
 		};
 		var sendloop = window.setInterval(send,1000);

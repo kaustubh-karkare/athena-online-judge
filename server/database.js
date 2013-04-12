@@ -30,7 +30,7 @@ database.page = function(collection,query,options,data,callback){
 	var c,n;
 	async.waterfall(mongodb.ready(collection).concat([
 		function(_c,cb){ c = _c.find(query,options).sort(data.sort); c.count(cb); },
-		function(_n,cb){ n = _n; c.skip(data.page).limit(data.size).toArray(cb) }
+		function(_n,cb){ n = _n; c.skip((data.page-1)*data.size).limit(data.size).toArray(cb) }
 	]), function(error,result){
 		if(error){ callback(error); return; }
 		result = {"data":result,"page":data.page,"total":Math.max(1,Math.ceil(n/data.size))};

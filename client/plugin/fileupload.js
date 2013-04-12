@@ -16,7 +16,7 @@ exports = function(args){
 	if(typeof(args)!=="object") return false;
 	args.multiselect = !!args.multiselect;
 	var s = (args.multiselect?"(s)":"");
-	
+
 	var top = $("<div>");
 	var input = top.append("<input type='file' style='display:none;'>").children(":first-child");
 	if(args.multiselect) input.attr("multiple","multiple");
@@ -27,7 +27,7 @@ exports = function(args){
 	display.append("<input type='text' style='cursor:text;background:transparent;' readonly='readonly' placeholder='Select File ...'>");
 	var text = display.children("input");
 	display.append("<span class='btn' title='Download File"+s+"'><i class='icon-download'></i></span>");
-	display.append("<span class='btn' title='Add File"+s+"'><i class='icon-plus-sign'></i></span>")
+	display.append("<span class='btn' title='Add File"+s+"'><i class='icon-plus-sign'></i></span>");
 	display.append("<span class='btn' title='Replace File"+s+"'><i class='icon-edit'></i></span>");
 	display.append("<span class='btn' title='Delete File"+s+"'><i class='icon-trash'></i></span>");
 	display.append("<span class='btn' title='Cancel Change"+s+"'><i class='icon-remove-circle'></i></span>");
@@ -46,9 +46,12 @@ exports = function(args){
 		text.css("width",206-23*count);
 		// match progress bar style with input
 		pbar1.css("width",206-23*count+14);
-		["top","bottom"].forEach(function(v){ ["left","right"].forEach(function(h){
-			var p = "border-"+v+"-"+h+"-radius"; pbar1.children("div").css(p,text.css(p));
-		}); });
+		["top","bottom"].forEach(function(v){
+			["left","right"].forEach(function(h){
+				var p = "border-"+v+"-"+h+"-radius";
+				pbar1.children("div").css(p,text.css(p));
+			});
+		});
 	};
 
 	var text_display = function(files){
@@ -92,7 +95,7 @@ exports = function(args){
 		add=false; input.change(file_change);
 		initial();
 	};
-	var file_download = function(){ };
+	var file_download = function(){ window.location="/download?id="+args.initial[0].id+"&name="+args.initial[0].name.urlencode(); };
 
 	input.change(file_change);
 	text.focus(function(){ if(mode==0){ input.click(); } });

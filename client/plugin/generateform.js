@@ -37,25 +37,29 @@ var datatypes = {
 	"integer" : function(name,spec,obj,save){
 		var input = $("<input type='number'>").attr("name",name);
 		if(obj!==undefined) input.val(parseInt(obj));
-		return [function(cb){ cb(null,input[0].value); }, controlgroup(spec.title,input[0])];
+		return [function(cb){ cb(null,input[0].value); }, controlgroup(spec.title?spec.title:name,input[0])];
 	},
-	"timestamp" : function(name,spec,obj,save){
+	"datetime" : function(name,spec,obj,save){
 		var date = $("<input type='date' style='margin-bottom:5px;'>").attr("name",name+"-date");
 		var time = $("<input type='time'>").attr("name",name+"-time");
 		if(obj!==undefined){ obj = timestamp.from(obj); date.val(obj[0]); time.val(obj[1]); }
-		return [function(cb){ cb(null,timestamp.to(date[0].value,time[0].value)); }, controlgroup(spec.title,[date,"<br>",time])];
+		return [function(cb){ cb(null,timestamp.to(date[0].value,time[0].value)); }, controlgroup(spec.title?spec.title:name,[date,"<br>",time])];
 	},
 	"string" : function(name,spec,obj,save){
 		var input = $("<input type='"+(spec.password?"password":"text")+"'>").attr("name",name);
 		if(obj!==undefined) input.val(String(obj));
-		return [function(cb){ cb(input[0].value.length?null:"empty:"+name,input[0].value); },controlgroup(spec.title,input[0])];
+		return [function(cb){ cb(input[0].value.length?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
+	},
+	"select" : function(name,spec,obj,save){
+		var select = plugin.select({"initial":(obj===undefined?spec.default:obj),"options":spec.options});
+		return [function(cb){ cb(null,select.value()); }, controlgroup(spec.title?spec.title:name,select.node)]
 	},
 	"reference" : function(name,spec,obj,save){
 		var refinput = plugin.suggestion({"initial":obj,"collection":spec.collection});
 		return [function(cb){
 			var x = refinput.value();
 			if(!spec.optional && x===undefined) cb("empty:"+name); else cb(null,x);
-		}, controlgroup(spec.title,refinput.node)];
+		}, controlgroup(spec.title?spec.title:name,refinput.node)];
 	},
 	"file" : function(name,spec,obj,save){
 		var fileinput = plugin.fileupload({"initial":obj});
@@ -64,7 +68,7 @@ var datatypes = {
 			fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
 				if(e===null && !spec.optional && r===undefined) cb("empty:"+name); else cb(e,r);
 			});
-		},controlgroup(spec.title,fileinput.node)];
+		},controlgroup(spec.title?spec.title:name,fileinput.node)];
 	},
 
 	"array" : function(name,spec,obj,save){
@@ -74,17 +78,17 @@ var datatypes = {
 			return [function(cb){
 				var x = refinput.value();
 				if(!spec.optional && x.length===0) cb("empty:"+name); else cb(null,x);
-			}, controlgroup(spec.title,refinput.node)];
+			}, controlgroup(spec.title?spec.title:name,refinput.node)];
 		}
 		// special case : array of files
-		if(spec.items.type==="file"){
+		if(false && spec.items.type==="file"){
 			var fileinput = plugin.fileupload({"initial":obj,"multiselect":true});
 			save.file_interface.push(fileinput.interface);
 			return [function(cb){
 				fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
 					if(e===null && !spec.optional && r.length===0) cb("empty:"+name); else cb(e,r);
 				});
-			},controlgroup(spec.title,fileinput.node)];
+			},controlgroup(spec.title?spec.title:name,fileinput.node)];
 		}
 		// default case
 		if(!Array.isArray(obj)) obj = [];
@@ -92,7 +96,7 @@ var datatypes = {
 		// function to wrap each input and provide buttons for reordering and deletion
 		var element = function(x,i){
 			first.push(x[0]); order.push(i);
-			return $("<div style='border-radius:4px; background:rgba(248,248,248,0.9);'><div></div><div></div></div>")
+			return $("<div><div></div><div></div></div>")
 				.children().css("display","inline-block").first().append(x[1])
 				.next().append("<a class='btn'><i class='icon-move'></i></a><a class='btn'><i class='icon-remove-circle'></i></a>")
 				.children().css("margin-left","10px").css("padding","3px 6px").last().click(function(){
@@ -104,9 +108,9 @@ var datatypes = {
 		// sequentially generate the element inputs and then wrap them
 		for(var i=0;i<obj.length;++i) second.push(generate_recursive(name+"."+i,spec.items,obj[i],save));
 		second = second.map(function(x,i){ return element(x,i); });
-		var _i = first.length;
+		var _i = first.length, add = spec.add?spec.add:"Add Array Element";
 		// enable sorting of elements
-		var arraytop = $("<div><div></div><div></div></div>");
+		var arraytop = $("<div style='border:1px solid #eee;border-radius:4px;padding:10px 10px 0px 0px;'><div></div><div></div></div>");
 		arraytop.children(":first-child").append(second).sortable({"handle":".icon-move","stop":function(){
 			var order2 = [], first2 = [];
 			arraytop.children(":first-child").children().each(function(i,e){
@@ -115,8 +119,8 @@ var datatypes = {
 			if(order.join(",")!==order2.join(",")) order = order2;
 		} });
 		// add button to add additional array items
-		arraytop.children(":last-child").append(controlgroup("",
-			$("<input type='button' class='btn' value='Add Array Element' style='width:220px;'>").click(function(){
+		arraytop.children(":last-child").append(controlgroup(" ",
+			$("<input type='button' class='btn' value='"+add+"' style='width:220px;'>").click(function(){
 				var i = _i++;
 				var x = generate_recursive(name+"."+i,spec.items,undefined,save);
 				var y = element(x,i);
@@ -124,7 +128,7 @@ var datatypes = {
 			})[0]
 		));
 		// wrap the list of array elements in a control group
-		second = controlgroup(spec.title,arraytop[0]);
+		second = controlgroup(spec.title?spec.title:name,arraytop[0]);
 		return [function(cb){
 			var reordered = [];
 			for(var i=0;i<order.length;++i) reordered.push(first[order[i]]);
@@ -180,7 +184,7 @@ var datatypes = {
 		if(!isNaN(id)) form
 			.append(controlgroup("","<input type='button' class='btn btn-danger' style='width:220px;' value='Delete "+name.ucwords().quotes()+"'>"))
 			.find("input.btn-danger")
-			.click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc(name+".delete",{"_id":id},submit); });
+			.click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc("database.delete",{"$collection":name,"_id":id},submit); });
 
 		// add handlers for submit event
 		var submitlock = false;
@@ -189,8 +193,9 @@ var datatypes = {
 			async.waterfall([
 				function(cb){ result[0](cb); },
 				function(data,cb){
+					data.$collection = name;
 					if(!isNaN(id)) data._id = id;
-					rpc(name+(isNaN(id)?".create":".modify"),data,cb);
+					rpc("database."+(isNaN(id)?"insert":"update"),data,cb);
 				}
 			],submit);
 			submitlock=false;
@@ -206,6 +211,6 @@ var generate_recursive = function(name,spec,obj,args){
 };
 
 exports = function(args){
-	if(typeof(args)!=="object" || typeof(args.spec)!=="object" || args.spec.type!=="document") return false;
-	return generate_recursive(args.name, args.spec, args.data, args)[1];
+	if(typeof(args)!=="object" || !(args.collection in schema)) return false;
+	return generate_recursive(args.collection, schema[args.collection], args.data, args)[1];
 };

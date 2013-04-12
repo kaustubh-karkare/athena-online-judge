@@ -6,55 +6,52 @@ misc.echo2 = function(){ console.log(JSON.stringify(arguments)); };
 misc.timestamp = function(){ return (new Date().getTime()); };
 
 misc.deferred = function(){
-	var interface = {}, success = [], failure = [], state = "pending";
-	interface.done = function(fn){ success.push(fn); };
-	interface.fail = function(fn){ failure.push(fn); };
-	interface.resolve = function(){
-		state = "resolved";
-		var args = Array.prototype.slice.apply(arguments);
-		interface.done = function(fn){ fn.apply(null,args); };
-		interface.fail = misc.nop;
-		while(success.length) success.shift().apply(null,args);
-	};
-	interface.reject = function(){
-		state = "rejected";
-		var args = Array.prototype.slice.apply(arguments);
-		interface.done = misc.nop;
-		interface.fail = function(fn){ fn.apply(null,args); };
-		while(failure.length) failure.shift().apply(null,args);
-	};
-	interface.state = function(){ return state; };
-	return interface;
+	this.success = [];
+	this.failure = [];
+	this._state = "pending";
 };
+misc.deferred.prototype.done = function(fn){ this.success.push(fn); };
+misc.deferred.prototype.fail = function(fn){ this.failure.push(fn); };
+misc.deferred.prototype.resolve = function(){
+	this._state = "resolved";
+	var args = Array.prototype.slice.apply(arguments);
+	this.done = function(fn){ fn.apply(null,args); };
+	this.fail = misc.nop;
+	while(this.success.length) this.success.shift().apply(null,args);
+};
+misc.deferred.prototype.reject = function(){
+	this._state = "rejected";
+	var args = Array.prototype.slice.apply(arguments);
+	this.done = misc.nop;
+	this.fail = function(fn){ fn.apply(null,args); };
+	while(this.failure.length) this.failure.shift().apply(null,args);
+};
+misc.deferred.prototype.state = function(){ return this._state; };
 
-misc.emitter = function(){
-	var interface = {}, events = {};
-	interface.clear = function(){ events = {}; };
-	interface.on = interface.addListener = function(name,listener){
-		(events[name] = events[name] || []).push(listener);
-	};
-	interface.off = interface.removeListener = function(name,listener){
-		if(events[name]){
-			events[name].remove(listener);
-			if(events[name].length==0) delete events[name];
-		}
-	};
-	interface.once = function(name,listener){
-		interface.addListener(name,function wrapper(){
-			listener.apply(null,Array.prototype.slice.apply(arguments));
-			interface.removeListener(name,wrapper);
-		});
-	};
-	interface.listeners = function(name){
-		return (name!==undefined ? events[name] || [] : events);
-	};
-	interface.emit = function(name){
-		var args = Array.prototype.slice.apply(arguments,[1]);
-		if(name in events) events[name].forEach(function(fn){ fn.apply(null,args); });
-		return name in events;
-	};
-	interface.events = events;
-	return interface;
+misc.emitter = function(){ this.events = {}; };
+misc.emitter.prototype.clear = function(){ this.events = {}; };
+misc.emitter.prototype.on = misc.emitter.prototype.addListener = function(name,listener){
+	(this.events[name] = this.events[name] || []).push(listener);
+};
+misc.emitter.prototype.off = misc.emitter.prototype.removeListener = function(name,listener){
+	if(this.events[name]){
+		this.events[name].remove(listener);
+		if(this.events[name].length==0) delete this.events[name];
+	}
+};
+misc.emitter.prototype.once = function(name,listener){
+	emitter.prototype.addListener(name,function wrapper(){
+		listener.apply(null,Array.prototype.slice.apply(arguments));
+		emitter.prototype.removeListener(name,wrapper);
+	});
+};
+misc.emitter.prototype.listeners = function(name){
+	return (name!==undefined ? this.events[name] || [] : this.events);
+};
+misc.emitter.prototype.emit = function(name){
+	var args = Array.prototype.slice.apply(arguments,[1]);
+	if(name in this.events) this.events[name].forEach(function(fn){ fn.apply(null,args); });
+	return name in this.events;
 };
 
 misc.array2object = function(array1,array2){

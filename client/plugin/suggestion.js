@@ -63,7 +63,7 @@ exports = function(args){
 	*/
 	var blur, click, skip = false;
 	var show = function(){
-		blur = misc.deferred();
+		blur = new misc.deferred();
 		blur.done(function(){
 			input.popover("hide");
 			saved = $(selected).detach(); // save selection
@@ -76,7 +76,7 @@ exports = function(args){
 			skip=true; // prevent re-initialization of input field & suggestions
 			window.setTimeout(function(){ input.focus(); },0); // since focus cannot be called in a hide event
 		});
-		click = misc.deferred();
+		click = new misc.deferred();
 		if(skip){ skip=false; return; }
 		
 		input.popover("show");
@@ -101,11 +101,11 @@ exports = function(args){
 		if(newval===oldval) return; else oldval = newval;
 		var aid = $(popover).find("a.active").attr("data-id");
 		// build query
-		var query = {"$exclude":[]}; if(newval.length>0) query[key] = newval;
+		var query = {"$exclude":[],"$collection":args.collection}; if(newval.length>0) query[key] = newval;
 		$(selected).children("a").each(function(i,x){ query["$exclude"].push(parseInt($(x).attr("data-id"))); });
 		if(query["$exclude"].length===0) delete query["$exclude"];
 		// invoke rpc
-		rpc(args.collection+".suggest",query,function(error,result){
+		rpc("database.suggest",query,function(error,result){
 			if(error){ console.log("change",error); return; }
 			// ensuring filter
 			var re_val = RegExp(RegExp.quote(newval),"i"), exclude = ("$exclude" in query?query["$exclude"]:[]);

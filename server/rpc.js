@@ -2,11 +2,11 @@
 var prefix = "rpc/";
 var log = true;
 
-var rpc = exports = misc.emitter();
+var rpc = exports = new misc.emitter();
 
 var suppress = function(name,data){
 	return name=="file.upload.continue"?{"id":data.id,"offset":data.offset,"block":"<suppressed>"}:data;
-}
+};
 
 rpc.process = function(socket){
 	socket.on(prefix+"up",function(key,name,data){

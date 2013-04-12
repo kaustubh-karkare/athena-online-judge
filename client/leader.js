@@ -8,7 +8,7 @@ var expire; // Pointer to the current timeout event
 var previous = "stop"; // Last event emitted.
 var log = false;
 
-var leader = exports = misc.emitter();
+var leader = exports = new misc.emitter();
 
 // What to do when the leader's heartbeats timeout.
 var leader_expire = function(){
