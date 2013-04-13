@@ -136,10 +136,10 @@ exports = function(args){
 		if(typeof(progress)!=="function") progress = misc.nop;
 		var files = Array.prototype.slice.call(input[0].files);
 		if(files.length==0){
-			if(mode===4) callback(null,args.multiselect?[]:undefined);
-			else callback(null,args.multiselect?args.initial:args.initial[0]);
+			if(mode===4) callback(null,args.multiselect?[]:null);
+			else callback(null,args.multiselect?args.initial:(args.initial[0]?args.initial[0]:null));
 			return true;
-		} // beyond this point, mode = 2 or 3
+		} // beyond this point, mode = 2 or 3 (at least one file selected for upload)
 		var offsets={}, totalsize=0; files.forEach(function(f){ totalsize+=f.size; });
 		files = files.map(function(file){
 			return function(cb){

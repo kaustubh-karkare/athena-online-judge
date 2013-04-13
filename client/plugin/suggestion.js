@@ -140,7 +140,7 @@ exports = function(args){
 	var value = function(){
 		var data = ($(selected).length===0?saved:$(selected)), result = [];
 		data.find("a").each(function(i,x){ try { result.push(JSON.parse($(x).attr("data-ref"))); } catch(e){} });
-		return args.multiselect ? result : result[0];
+		return args.multiselect ? result : (result[0]?result[0]:null);
 	};
 
 	input.popover({

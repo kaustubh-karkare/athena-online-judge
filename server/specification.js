@@ -28,16 +28,16 @@ var datatypes = {
 		else callback(null,obj);
 	},
 	"reference" : function(name,spec,obj,callback,save){
-		if(spec.optional && obj===undefined){ callback(null,undefined); return; }
-		// TODO : add checks for other keys also
-		if(typeof(obj)!=="object" || obj===null || !("_id" in obj)) callback("corrupt:"+name);
-		else database.get(spec.collection,{_id:obj._id},{_id:1},function(error,result){
-			if(!error) save.references.push(obj);
-			callback(error,error===null?obj:undefined);
+		if(spec.optional && obj===null){ callback(null,null); return; }
+		if(typeof(obj)!=="object" || obj===null || !("_id" in obj)){ callback("corrupt:"+name); return; }
+		var fields = {}; schema[spec.collection].keys.forEach(function(key){ fields[key]=1; });
+		database.get(spec.collection,{_id:obj._id},fields,function(error,result){
+			if(!error) save.references.push(result);
+			callback(error,error===null?result:undefined);
 		});
 	},
 	"file" : function(name,spec,obj,callback,save){
-		if(spec.optional && obj===undefined){ callback(null,undefined); return; }
+		if(spec.optional && obj===null){ callback(null,null); return; }
 		if(typeof(obj)!=="object" || obj===null  || !("id" in obj) || !("name" in obj) || !("size" in obj))
 			{ callback("corrupt:"+name); return; }
 		obj.id = String(obj.id).toLowerCase(); obj.name = String(obj.name); obj.size = parseInt(obj.size);
@@ -109,7 +109,7 @@ var verify_recursive = function(spec,callback){
 				return function(cb){ verify_recursive(spec.items[key],cb); };
 			}),callback);
 		} else if(spec.type==="select"){
-			if("options" in spec && Object.keys(spec.options).length>0) callback(null);
+			if("options" in spec && "default" in spec && Object.keys(spec.options).indexOf(String(spec.default))!==-1) callback(null);
 			else callback("specification-error");
 		} else callback(null);
 	} else callback("specification-error");

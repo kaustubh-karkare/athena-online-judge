@@ -35,20 +35,25 @@ var timestamp = {
 
 var datatypes = {
 	"integer" : function(name,spec,obj,save){
-		var input = $("<input type='number'>").attr("name",name);
+		var input = $("<input type='number'>");
 		if(obj!==undefined) input.val(parseInt(obj));
-		return [function(cb){ cb(null,input[0].value); }, controlgroup(spec.title?spec.title:name,input[0])];
+		return [function(cb){ cb(null,parseInt(input[0].value)); }, controlgroup(spec.title?spec.title:name,input[0])];
+	},
+	"float" : function(name,spec,obj,save){
+		var input = $("<input type='text'>");
+		if(obj!==undefined) input.val(parseFloat(obj));
+		return [function(cb){ cb(null,parseFloat(input[0].value)); }, controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"datetime" : function(name,spec,obj,save){
-		var date = $("<input type='date' style='margin-bottom:5px;'>").attr("name",name+"-date");
+		var date = $("<input type='date' style='margin-bottom:5px;'>");
 		var time = $("<input type='time'>").attr("name",name+"-time");
 		if(obj!==undefined){ obj = timestamp.from(obj); date.val(obj[0]); time.val(obj[1]); }
 		return [function(cb){ cb(null,timestamp.to(date[0].value,time[0].value)); }, controlgroup(spec.title?spec.title:name,[date,"<br>",time])];
 	},
 	"string" : function(name,spec,obj,save){
-		var input = $("<input type='"+(spec.password?"password":"text")+"'>").attr("name",name);
+		var input = $("<input type='"+(spec.password?"password":"text")+"'>");
 		if(obj!==undefined) input.val(String(obj));
-		return [function(cb){ cb(input[0].value.length?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
+		return [function(cb){ cb((input[0].value.length||spec.optional)?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"select" : function(name,spec,obj,save){
 		var select = plugin.select({"initial":(obj===undefined?spec.default:obj),"options":spec.options});
@@ -58,7 +63,7 @@ var datatypes = {
 		var refinput = plugin.suggestion({"initial":obj,"collection":spec.collection});
 		return [function(cb){
 			var x = refinput.value();
-			if(!spec.optional && x===undefined) cb("empty:"+name); else cb(null,x);
+			if(!spec.optional && x===null) cb("empty:"+name); else cb(null,x);
 		}, controlgroup(spec.title?spec.title:name,refinput.node)];
 	},
 	"file" : function(name,spec,obj,save){
@@ -66,7 +71,7 @@ var datatypes = {
 		save.file_interface.push(fileinput.interface);
 		return [function(cb){
 			fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
-				if(e===null && !spec.optional && r===undefined) cb("empty:"+name); else cb(e,r);
+				if(e===null && !spec.optional && r===null) cb("empty:"+name); else cb(e,r);
 			});
 		},controlgroup(spec.title?spec.title:name,fileinput.node)];
 	},

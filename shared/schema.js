@@ -11,6 +11,7 @@ internal (boolean) = skip this key-value pair during dynamic form generation
 optional (boolean) = makes the value optional (empty for string/array type, undefined for reference/file type)
 default (variable) = default value for object to be assumed when not specified
 keys (array) = applicable for document type only, the list of fields to index the collection by
+	_id key is added automatically in server/rpc/database.js
 items (object) = the specification for what an array/object/document contains
 collection (string) = applicable in case of reference type, the name of the collection referred to
 add (string) = applicable for arrays, the text to display on the "Add New Element" button
@@ -18,34 +19,39 @@ add (string) = applicable for arrays, the text to display on the "Add New Elemen
 */
 
 schema.user = {
-	"type": "document",
-	"keys": ["username"],
-	"items": {
-		"type": {type:"string",default:"normal",internal:true},
-		"username": {type:"string",title:"Username"},
-		"password": {type:"string",title:"Password",password:true},
-		"email": {type:"string",title:"EMail Address"},
-		"realname": {type:"string",title:"Real Name"},
-		"image": {type:"file",title:"Profile Picture",optional:true},
-		"groups": {type:"array",title:"Groups",optional:true,items:{type:"reference",collection:"group"}}
+	type: "document",
+	keys: ["username"],
+	items: {
+		"status": { type: "string", default: "normal", internal: true },
+		"username": { type: "string", title: "Username" },
+		"password": { type: "string", title: "Password", password: true },
+		"email": { type: "string", title: "EMail Address" },
+		"realname": { type: "string", title: "Real Name" },
+		"image": { type: "file", title: "Profile Picture", optional: true },
+		"groups": {
+			type: "array",
+			title: "Groups",
+			optional: true,
+			items: { type:"reference", collection:"group", title:"Group" }
+		}
 	}
 };
 
 schema.group = {
-	"type": "document",
-	"keys": ["name"],
-	"items": {
-		"name": {type:"string",title:"Group Name"},
-		"desc": {type:"string",title:"Description"},
-		"owner": {type:"reference",collection:"user",title:"Owner"},
-		"set": {type:"reference",collection:"set",title:"Set"}
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type: "string", title: "Group Name" },
+		"desc": { type: "string", title: "Description" },
+		"owner": { type: "reference", collection: "user", title: "Owner" },
+		"set": { type: "reference", collection:"set", title:"Set" }
 	}
 };
 
 schema.set = {
-	"type": "document",
-	"keys": ["name"],
-	"items": {
+	type: "document",
+	keys: ["name"],
+	items: {
 		"name": {type:"string",title:"Set Name"},
 		"desc": {type:"string",title:"Description"},
 		"freedom": {
@@ -76,5 +82,137 @@ schema.set = {
 			default:0
 		},
 		"limit": {type:"integer",title:"User Limit"}
+	}
+};
+
+schema.language = {
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type: "string", title: "Language Name" },
+		"compile": { type: "string", title: "Compile Command" },
+		"execute": { type: "string", title: "Execute Command" },
+		"multiplier": { type: "float", title: "Time Limit Multiplier" }
+	}
+};
+
+schema.judge = {
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type: "string", title: "Judge Name" },
+		"desc": { type: "string", title: "Description", optional: true },
+		"language": { type: "reference", collection: "language", title: "Language" },
+		"code": { type: "file", title: "Code" }
+	}
+};
+
+schema.problem = {
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type:"string", title: "Problem Name" },
+		"tags": { type:"array", title: "Tags", items: { type: "string", title:"Tag" } },
+		"languages": {
+			type: "array",
+			title: "Allowed Languages",
+			optional: true,
+			items: { type: "reference", title: "Language", collection: "language" }
+		},
+		"statement": { type: "string", title: "Statement" },
+		"tutorial": { type: "string", title: "Tutorial" },
+		"files": {
+			type: "array",
+			title: "Associated Files",
+			optional: true,
+			items: { type: "file", title: "File" }
+		},
+		"tests": {
+			type: "array",
+			title: "Test Data",
+			optional: true,
+			items: {
+				type:"object",
+				items:{
+					"input" : { type: "file", title: "Input" },
+					"output" : { type: "file", title: "Output" },
+					"timelimit" : { type: "float", title: "Time Limit" }
+				}
+			}
+		},
+		"judge": { type:"reference", collection: "judge", title: "Judge" }
+	}
+};
+
+schema.contest = {
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type: "string", title: "Contest Name" },
+		"desc": { type: "string", title: "Description", optional: true },
+		"problems": {
+			type: "array",
+			optional: true,
+			title: "Problems",
+			items: { type: "reference", collection: "problem", title: "Problem" }
+		},
+		"start": { type: "datetime", title: "Start Time" },
+		"end": { type: "datetime", title: "End Time" },
+		"groups": {
+			type: "array",
+			title: "Allowed Groups",
+			optional: true,
+			items: { type: "reference", collection: "group", title: "Group" }
+		},
+		"ranking": { type: "reference", collection: "set", title: "Ranking Scheme", optional: true }
+	}
+};
+
+schema.code = {
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type: "string", title: "Name" },
+		"problem": { type: "reference", collection: "problem", title: "Problem" },
+		"contest": { type: "reference", collection: "contest", title: "Contest" },
+		"user": { type: "reference", collection: "user", title: "User" },
+		"language": { type: "reference", collection: "language", title: "Language" },
+		"code": { type: "string", title: "Code" },
+		"results": {
+			type: "array",
+			title: "Results",
+			optional: true,
+			items: {
+				type: "object",
+				items: {
+					"error": { type: "string", title: "Error Message" },
+					"time": { type: "float", title: "Run Time" },
+					"output": { type: "file", title: "Solution Output", optional: true },
+					"result": {
+						type: "select",
+						title: "Result",
+						options: {
+							"NA1" : "Judgement Pending",
+							"NA2" : "Judgement Ongoing",
+							"AC" : "Accepted",
+							"CE" : "Compilation Error",
+							"RTE" : "Run Time Error",
+							"TLE" : "Time Limit Exceeded",
+							"WA" : "Wrong Answer",
+							"PE" : "Presentation Error",
+							"DQ" : "Manually Disqualified"
+						},
+						default: "NA1"
+					}
+				}
+			}
+		},
+		"access": {
+			type: "select",
+			title: "Access",
+			options: { 0: "Private", 1: "Protected", 2: "Public" },
+			default: 0
+		},
+		"time": { type: "datetime", title: "Submission Time" }
 	}
 };
