@@ -1,7 +1,7 @@
 
 // Ensure that the Database Schema has no errors.
 async.parallel(Object.keys(schema).map(function(collection){
-	return function(cb){ specification.verify(schema[collection],cb); };
+	return function(cb){ specification.verify(collection,schema[collection],cb); };
 }),function(error,result){
 	if(error){ console.log(error); process.exit(); }
 });

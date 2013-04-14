@@ -9,7 +9,8 @@ var legend = function(type,collection){
 	return $("<legend style='width:760px;padding:10px;'>"+text+"<span class='pull-right'><a class='btn' href='#admin/"+collection.urlencode()+"/"+href+"'>"+link+"</a></span></legend>");
 }
 
-exports = new widget(function(path,callback){
+exports = new page(function(data,callback){
+	var path = data.path;
 	var key = schema[path[1]].keys[0], select = {$collection:path[1]}; select[key] = path[3];
 	var that = this, reload = function(){ that.reload(); };
 	async.series([
@@ -40,4 +41,4 @@ exports = new widget(function(path,callback){
 			});
 		}
 	});
-});
+},1);

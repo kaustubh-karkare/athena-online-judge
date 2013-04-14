@@ -16,13 +16,13 @@ rpc.on("socket.disconnect",function(socket){
 rpc.on("user.login",function(socket,data,callback){
 	var spec = {type:"object",items:{username:{type:"string"},password:{type:"string"}}};
 	async.waterfall([
-		function(cb){ specification.match_complete(spec,data,cb); },
-		function(select,cb){ database.get("user",select,{},cb); }
+		function(cb){ specification.match_complete("login",spec,data,cb); },
+		function(select,save,cb){ database.get("user",select,{},cb); }
 	], function(error,result){
 		if(error){ callback(error); return; }
 		socket.data.user = result;
-		socket.data.auth = ["anon","normal","admin"].indexOf(socket.data.user.type);
-		callback(null,{"user":socket.data.user,"auth":socket.data.auth});
+		socket.data.auth = result.auth;
+		callback(null,{"user":socket.data.user});
 	});
 });
 

@@ -5,6 +5,8 @@ misc.echo = function(){ console.log(arguments); };
 misc.echo2 = function(){ console.log(JSON.stringify(arguments)); };
 misc.timestamp = function(){ return (new Date().getTime()); };
 
+
+
 misc.deferred = function(){
 	this.success = [];
 	this.failure = [];
@@ -26,7 +28,31 @@ misc.deferred.prototype.reject = function(){
 	this.fail = function(fn){ fn.apply(null,args); };
 	while(this.failure.length) this.failure.shift().apply(null,args);
 };
+misc.deferred.prototype.reset = function(fn){
+	delete this.done;
+	delete this.fail;
+	this._state = "pending";
+};
 misc.deferred.prototype.state = function(){ return this._state; };
+
+
+
+misc.semaphore = function(limit){
+	this.count = 0;
+	this.limit = limit;
+	this.waiting = [];
+};
+misc.semaphore.prototype.acquire = function(fn,context){
+	if(this.count<this.limit){ ++this.count; fn.call(context,this.release); }
+	else this.waiting.push(fn);
+};
+misc.semaphore.prototype.release = function(){
+	if(this.waiting.length>0) this.waiting.shift()(this.release);
+	else if(this.count>0) --this.count;
+};
+misc.semaphore.prototype.free = function(){ return this.count<this.limit; };
+
+
 
 misc.emitter = function(){ this.events = {}; };
 misc.emitter.prototype.clear = function(){ this.events = {}; };
@@ -40,9 +66,10 @@ misc.emitter.prototype.off = misc.emitter.prototype.removeListener = function(na
 	}
 };
 misc.emitter.prototype.once = function(name,listener){
-	emitter.prototype.addListener(name,function wrapper(){
+	var that = this;
+	this.addListener(name,function wrapper(){
 		listener.apply(null,Array.prototype.slice.apply(arguments));
-		emitter.prototype.removeListener(name,wrapper);
+		that.removeListener(name,wrapper);
 	});
 };
 misc.emitter.prototype.listeners = function(name){
@@ -53,6 +80,8 @@ misc.emitter.prototype.emit = function(name){
 	if(name in this.events) this.events[name].forEach(function(fn){ fn.apply(null,args); });
 	return name in this.events;
 };
+
+
 
 misc.array2object = function(array1,array2){
 	var result = {}, len = Math.min(array1.length,array2.length);

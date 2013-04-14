@@ -5,6 +5,8 @@ socketio
 socket
 rpc
 plugin
+auth
 widget
+page
 display
 test

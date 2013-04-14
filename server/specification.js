@@ -100,24 +100,27 @@ specification.match_complete = function(name,spec,obj,callback){ match_common(na
 
 
 
-var verify_recursive = function(spec,callback){
+var verify_recursive = function(name,spec,callback){
 	if(typeof(spec)==="object" && spec!==null && spec.type in datatypes && spec.type!=="document"){
-		if(spec.type==="array") verify_recursive(spec.items,callback);
+		if(spec.type==="array") verify_recursive(name+"[]",spec.items,callback);
 		else if(spec.type==="object"){
-			if(typeof(spec.items)!=="object") callback("specification-error");
+			if(typeof(spec.items)!=="object") callback("specification-error:corrupt-object:"+name);
 			else async.parallel(Object.keys(spec.items).map(function(key){
-				return function(cb){ verify_recursive(spec.items[key],cb); };
+				return function(cb){ verify_recursive(name+"."+key,spec.items[key],cb); };
 			}),callback);
 		} else if(spec.type==="select"){
 			if("options" in spec && "default" in spec && Object.keys(spec.options).indexOf(String(spec.default))!==-1) callback(null);
-			else callback("specification-error");
+			else callback("specification-error:corrupt-select:"+name);
+		} else if(spec.type==="reference"){
+			if("collection" in spec && spec.collection in schema) callback(null);
+			else callback("specification-error:corrupt-reference:"+name)
 		} else callback(null);
-	} else callback("specification-error");
+	} else callback("specification-error:corrupt:"+name);
 };
 
-specification.verify = function(spec,callback){
-	if(typeof(spec)==="object"){
-		verify_recursive({type:"object","items":spec.items},function(error,result){
+specification.verify = function(name,spec,callback){
+	if(typeof(spec)==="object" && spec!==null && spec.type==="document"){
+		verify_recursive(name,{type:"object","items":spec.items},function(error,result){
 			if(error!==null
 				|| !Array.isArray(spec.keys)
 				|| spec.keys.length===0
@@ -125,5 +128,5 @@ specification.verify = function(spec,callback){
 				) callback(error?error:"specification-error");
 			else callback(null);
 		});
-	} else callback("specification-error");
+	} else callback("specification-error:corrupt-document:"+name);
 };

@@ -22,7 +22,6 @@ schema.user = {
 	type: "document",
 	keys: ["username"],
 	items: {
-		"status": { type: "string", default: "normal", internal: true },
 		"username": { type: "string", title: "Username" },
 		"password": { type: "string", title: "Password", password: true },
 		"email": { type: "string", title: "EMail Address" },
@@ -33,6 +32,12 @@ schema.user = {
 			title: "Groups",
 			optional: true,
 			items: { type:"reference", collection:"group", title:"Group" }
+		},
+		"auth": {
+			type: "select",
+			title: "Status",
+			options: { 0: "Anonymous", 1: "Normal", 2: "Administrator" },
+			default: 1
 		}
 	}
 };
