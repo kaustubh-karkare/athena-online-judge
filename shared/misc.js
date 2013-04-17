@@ -44,10 +44,10 @@ misc.semaphore = function(limit){
 };
 misc.semaphore.prototype.acquire = function(fn,context){
 	if(this.count<this.limit){ ++this.count; fn.call(context,this.release); }
-	else this.waiting.push(fn);
+	else this.waiting.push([fn,context]);
 };
 misc.semaphore.prototype.release = function(){
-	if(this.waiting.length>0) this.waiting.shift()(this.release);
+	if(this.waiting.length>0){ var x = this.waiting.shift(); x[0].call(x[1],this.release); }
 	else if(this.count>0) --this.count;
 };
 misc.semaphore.prototype.free = function(){ return this.count<this.limit; };
@@ -100,4 +100,25 @@ misc.attrmap = function(x){
 	var attrs = {};
 	$.each(x.attributes, function(i,e){ attrs[e.nodeName]=e.nodeValue; });
 	return attrs;
+};
+
+
+
+
+misc.datetime = {
+	month : "January,February,March,April,May,June,July,August,September,October,November,December".split(","),
+	days : "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday",
+	format : function(time,how){
+		var d = new Date(t);
+		return how.replace(/[A-Za-z]/g,function(c){
+			if(c==="d") return ("0"+d.getDate()).slice(-2);
+			else if(c==="D") return days[d.getDay()].substr(0,3);
+			else return c; // incomplete
+		});
+	},
+	abs : function(t){
+		var d = new Date(t);
+		return d.getFullYear()+" "+misc.datetime.month[d.getMonth()]+" "+d.getDate()+", "+
+			("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+	}
 };

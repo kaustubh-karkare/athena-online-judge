@@ -1,4 +1,6 @@
 
+var authlevel = 0; // admin level
+
 // Ensure that the Database Schema has no errors.
 async.parallel(Object.keys(schema).map(function(collection){
 	return function(cb){ specification.verify(collection,schema[collection],cb); };
@@ -17,6 +19,7 @@ Object.keys(schema).map(function(collection){
 });
 
 rpc.on("database.insert",function(socket,data,callback){
+	if(socket.data.auth<authlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
 	var item, save;
 	async.series([
@@ -28,6 +31,7 @@ rpc.on("database.insert",function(socket,data,callback){
 });
 
 rpc.on("database.update",function(socket,data,callback){
+	if(socket.data.auth<authlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
 	var id, item1, save1, item2, save2;
 	async.series([
@@ -55,6 +59,7 @@ rpc.on("database.update",function(socket,data,callback){
 });
 
 rpc.on("database.delete",function(socket,data,callback){
+	if(socket.data.auth<authlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
 	var item1, save1, item2;
 	async.series([
@@ -67,6 +72,7 @@ rpc.on("database.delete",function(socket,data,callback){
 });
 
 rpc.on("database.specific",function(socket,data,callback){
+	if(socket.data.auth<authlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
 	var item, result;
 	async.series([
@@ -76,25 +82,11 @@ rpc.on("database.specific",function(socket,data,callback){
 });
 
 rpc.on("database.pagination",function(socket,data,callback){
+	if(socket.data.auth<authlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
 	var item, result;
 	async.series([
 		function(cb){ specification.match_partial(collection,schema[collection],data,function(e,i){ if(!e) item=i; cb(e); }); },
-		function(cb){
-			if(typeof(data.$page)!=="object" || data.$page===null){ cb("corrupt:$page"); return; }
-			var a = ["page","size","sort"];
-			for(var i=0;i<a.length;++i){
-				if(!(a[i] in data.$page)){ cb("missing:$page:"+a[i]); return; }
-				if(i<2){
-					data.$page[a[i]] = parseInt(data.$page[a[i]]);
-					if(!isNaN(data.$page[a[i]])) continue;
-				} else {
-					if(typeof(data.$page[a[i]])==="string") continue;
-				}
-				cb("corrupt:$page:"+a[i]); return;
-			}
-			cb(null);
-		},
 		function(cb){ database.page(collection,item,{},data.$page,function(e,r){ if(!e) result=r; cb(e); }); }
 	], function(error){ callback(error,result); });
 });
@@ -113,6 +105,6 @@ rpc.on("database.suggest",function(socket,data,callback){
 			if(key in item) item[key] = RegExp(RegExp.quote(item[key]),"i");
 			cb(null);
 		},
-		function(cb){ database.page(collection,item,columns,{"page":1,"size":5,"sort":key},function(e,r){ if(!e) result=r; cb(e); }); }
+		function(cb){ database.page(collection,item,columns,{"number":1,"size":5,"sort":key},function(e,r){ if(!e) result=r; cb(e); }); }
 	], function(error){ callback(error,result); });
 });

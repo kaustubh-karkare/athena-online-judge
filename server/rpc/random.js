@@ -31,3 +31,8 @@ rpc.on("user.logout",function(socket,data,callback){
 	socket.data.auth = 0;
 	callback(null);
 });
+
+var safe = function(callback){ return function(e,r){ callback(e,e?undefined:r); }; };
+rpc.on("contests.past",function(socket,data,callback){ database.page("contest",{"end":{$lt:new Date().valueOf()}},{},data.$page,safe(callback)); });
+rpc.on("contests.future",function(socket,data,callback){ database.page("contest",{"end":{$gte:new Date().valueOf()}},{},data.$page,safe(callback)); });
+rpc.on("contest.display",function(socket,data,callback){ database.get("contest",{"name":data},{},safe(callback)); })

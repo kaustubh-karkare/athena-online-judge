@@ -36,8 +36,10 @@ exports = new page(function(data,callback){
 			})]);
 		if(path[2]==="index"){
 			var p = plugin.pagination({
-				collection : path[1],
-				newpage : function(){ callback(null,[legend(path[2],path[1]),p.node]); }
+				"collection" : path[1],
+				"page" : {"sort":key},
+				"loaded" : function(){ callback(null,[legend(path[2],path[1]),p.node]); },
+				"click" : function(item){ location.hash="#admin/"+path[1]+"/edit/"+item[key].urlencode(); }
 			});
 		}
 	});
