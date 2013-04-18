@@ -9,6 +9,8 @@ exports = function(args){
 	else if(typeof(args.collection)==="string") filter.$collection = args.collection;
 	else return false;
 
+	filter.data = args.data;
+
 	// args.page can be used to specify paging infomation
 	if(typeof(args.page)!=="object" || args.page===null) args.page = {};
 	args.page.number = parseInt(args.page.number); args.page.size = parseInt(args.page.size);

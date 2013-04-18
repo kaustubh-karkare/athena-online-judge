@@ -1,8 +1,8 @@
 
 exports = new page(function(data,callback){
-	var path = data.path;
+	if(data.path[2]==="problem" && data.path[3]!==undefined){ callback("redirect","problem"); return; }
 	async.series([
-		function(cb){ rpc("contest.display",path[1],cb); }
+		function(cb){ rpc("contest.display",data.path[1],cb); }
 	], function(error,result){
 		if(error){ callback(error); return; }
 		var contest = result[0], top = $("<div>").append([
@@ -19,8 +19,8 @@ exports = new page(function(data,callback){
 				"</tbody></table>"
 			),
 			$("<div class='half'>").append(contest.problems.map(function(p){
-				return $("<a href='#contest/"+contest.name.urlencode()+"/problem/"+p.name.urlencode()+"'>"+
-					"<div class='well well-small' style='cursor:pointer;'>"+p.name.htmlentities()+"</div></a>");
+				return $("<a href='#contest/"+contest.name.urlencode()+"/problem/"+p.problem.name.urlencode()+"'>"+
+					"<div class='well well-small' style='cursor:pointer;'>"+p.problem.name.htmlentities()+"</div></a>");
 				})
 			)
 		]);

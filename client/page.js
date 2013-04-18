@@ -18,7 +18,10 @@ page.prototype.show = function(data){
 		var second = this.element.append("<div></div>").children().last().css("display","none");
 		first.animate({opacity:0.5},display.duration);
 		var process = function(error,result){
-			if(error){
+			// support to load a different page without changing location.hash
+			if(error==="redirect" && page[result] instanceof page){
+				page[result].display.call(page[result],data,process);
+			} else if(error){
 				display.error(error);
 				first.animate({opacity:1},display.duration);
 				second.remove();

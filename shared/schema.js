@@ -95,9 +95,9 @@ schema.language = {
 	keys: ["name"],
 	items: {
 		"name": { type: "string", title: "Language Name" },
-		"compile": { type: "string", title: "Compile Command" },
+		"compile": { type: "string", title: "Compile Command", optional: true },
 		"execute": { type: "string", title: "Execute Command" },
-		"multiplier": { type: "float", title: "Time Limit Multiplier" }
+		"multiplier": { type: "float", title: "Time Limit Multiplier", optional: true }
 	}
 };
 
@@ -124,8 +124,9 @@ schema.problem = {
 			optional: true,
 			items: { type: "reference", title: "Language", collection: "language" }
 		},
-		"statement": { type: "string", title: "Statement" },
-		"tutorial": { type: "string", title: "Tutorial" },
+		"setter": { type:"string", title: "Problem Setter / Source", optional: true },
+		"statement": { type: "string", title: "Statement", long: true },
+		"tutorial": { type: "string", title: "Tutorial", long: true },
 		"files": {
 			type: "array",
 			title: "Associated Files",
@@ -138,7 +139,7 @@ schema.problem = {
 			optional: true,
 			items: {
 				type:"object",
-				items:{
+				items: {
 					"input" : { type: "file", title: "Input" },
 					"output" : { type: "file", title: "Output" },
 					"timelimit" : { type: "float", title: "Time Limit" }
@@ -159,7 +160,13 @@ schema.contest = {
 			type: "array",
 			optional: true,
 			title: "Problems",
-			items: { type: "reference", collection: "problem", title: "Problem" }
+			items: {
+				type: "object",
+				items: {
+					"problem": { type: "reference", collection: "problem", title: "Problem" },
+					"points": { type: "integer", title: "Points" }
+				}
+			}
 		},
 		"start": { type: "datetime", title: "Start Time" },
 		"end": { type: "datetime", title: "End Time" },
@@ -182,7 +189,7 @@ schema.code = {
 		"contest": { type: "reference", collection: "contest", title: "Contest" },
 		"user": { type: "reference", collection: "user", title: "User" },
 		"language": { type: "reference", collection: "language", title: "Language" },
-		"code": { type: "string", title: "Code" },
+		"code": { type: "string", title: "Code", long: true },
 		"results": {
 			type: "array",
 			title: "Results",
@@ -210,7 +217,8 @@ schema.code = {
 						default: "NA1"
 					}
 				}
-			}
+			},
+			default: []
 		},
 		"access": {
 			type: "select",

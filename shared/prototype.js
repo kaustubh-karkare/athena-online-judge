@@ -24,3 +24,5 @@ String.prototype.repeat = function(num){ return new Array( num + 1 ).join( this 
 String.prototype.ucwords = function(){ return this.replace(/^(\S)|\s+(\S)/g,function($1){return $1.toUpperCase();}); };
 
 RegExp.quote = function(str){ return (str+'').replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1"); };
+
+Array.prototype.hash = function(){ return "#"+this.map(function(x){ return (""+x).urlencode(); }).join("/"); };

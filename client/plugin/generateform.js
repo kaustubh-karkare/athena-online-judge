@@ -51,7 +51,8 @@ var datatypes = {
 		return [function(cb){ cb(null,timestamp.to(date[0].value,time[0].value)); }, controlgroup(spec.title?spec.title:name,[date,"<br>",time])];
 	},
 	"string" : function(name,spec,obj,save){
-		var input = $("<input type='"+(spec.password?"password":"text")+"'>");
+		if(spec.long) var input = $("<textarea></textarea>");
+		else var input = $("<input type='"+(spec.password?"password":"text")+"'>");
 		if(obj!==undefined) input.val(String(obj));
 		return [function(cb){ cb((input[0].value.length||spec.optional)?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
 	},

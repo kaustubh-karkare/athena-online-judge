@@ -15,7 +15,7 @@ widget.prototype.show = function(data){
 	this.element.children().not(first).remove();
 	var second = this.element.append("<div>").children().last().css("display","none");
 	var process = function(e,r){
-		if(e){ first.hide(); return; }
+		if(e){ second.hide(); return; }
 		first.css("position","absolute").fadeOut(display.duration,function(){ first.remove(); });
 		second.append(r).fadeIn(display.duration);
 	};

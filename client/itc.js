@@ -22,8 +22,8 @@ itc.emit = function(name){
 itc.broadcast = function(name){
 	if(typeof(name)!=="string") return false;
 	var args = Array.prototype.slice.apply(arguments);
-	itc.$emit.apply(this,args);
-	itc.emit.apply(this,args);
+	itc.$emit.apply(itc,args);
+	itc.emit.apply(itc,args);
 };
 
 window.addEventListener('storage',function(event){
@@ -48,6 +48,6 @@ window.addEventListener('storage',function(event){
 		delete accesstime[event.key];
 		try { args = JSON.parse(args); } catch (e) { return; }
 		if(log) console.log("[itc] recv",args);
-		itc.$emit.apply(this,args);
+		itc.$emit.apply(itc,args);
 	}
 });
