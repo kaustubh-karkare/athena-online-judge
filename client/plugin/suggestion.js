@@ -13,13 +13,14 @@ exports = function(args){
 	var saved = $("<div id='selected'></div>");
 
 	var wrap = function(x){
-		return $("<a>").html(x[key].htmlentities()).click(function(){
+		return $("<a>").html(String(x[key]).htmlentities()).click(function(){
 			$(this).parent().parent().find("a").removeClass("active");
 			$(this).addClass("active"); transfer();
 		}).attr("data-id",x._id).attr("data-ref",JSON.stringify(x));
 	};
 	if(args.initial){
 		if(!args.multiselect) args.initial = [args.initial];
+		args.initial = args.initial.filter(function(x){ return x._id!==0; });
 		var flag = true, result = [];
 		args.initial.forEach(function(x){
 			flag &= ("_id" in x && !isNaN(x._id) && key in x && typeof(x[key])==="string");

@@ -3,7 +3,7 @@ var schema = exports = {};
 
 /*
 
-types = integer, float, datetime, string, select, reference, file, array, object, document
+types = integer, float,  string, select, reference, file, array, object, document
 
 title (string) = the text visible to the user during dynamic form generation, beside the input field
 password (boolean) = applicable for string type only, makes the input "password" type
@@ -37,7 +37,7 @@ schema.user = {
 			type: "select",
 			title: "Status",
 			options: { 0: "Anonymous", 1: "Normal", 2: "Administrator" },
-			default: 1
+			default: 0
 		}
 	}
 };
@@ -117,7 +117,12 @@ schema.problem = {
 	keys: ["name"],
 	items: {
 		"name": { type:"string", title: "Problem Name" },
-		"tags": { type:"array", title: "Tags", items: { type: "string", title:"Tag" } },
+		"tags": {
+			type:"array",
+			title: "Tags",
+			items: { type: "string", title:"Tag" },
+			optional: true
+		},
 		"languages": {
 			type: "array",
 			title: "Allowed Languages",
@@ -168,8 +173,8 @@ schema.contest = {
 				}
 			}
 		},
-		"start": { type: "datetime", title: "Start Time" },
-		"end": { type: "datetime", title: "End Time" },
+		"start": { type: "integer", title: "Start Time", datetime: true },
+		"end": { type: "integer", title: "End Time", datetime: true },
 		"groups": {
 			type: "array",
 			title: "Allowed Groups",
@@ -226,6 +231,6 @@ schema.code = {
 			options: { 0: "Private", 1: "Protected", 2: "Public" },
 			default: 0
 		},
-		"time": { type: "datetime", title: "Submission Time" }
+		"time": { type: "integer", title: "Submission Time", datetime: true }
 	}
 };

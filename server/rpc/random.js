@@ -36,6 +36,7 @@ var safe = function(callback){ return function(e,r){ callback(e,e?undefined:r); 
 
 rpc.on("contest.list",function(socket,data,callback){
 	var condition = data.data==="past" ? {"end":{$lt:new Date().valueOf()}} : {"end":{$gte:new Date().valueOf()}};
+	condition._id = {"$ne":0};
 	database.page("contest",condition,{},data.$page,safe(callback));
 });
 rpc.on("code.list",function(socket,data,callback){
@@ -44,7 +45,7 @@ rpc.on("code.list",function(socket,data,callback){
 	["contest","problem","user","language"].forEach(function(x){
 		if(x in data.data && !isNaN(i = parseInt(data.data[x]))) condition[x+"._id"] = i;
 	});
-	console.log(condition);
+	condition._id = {"$ne":0};
 	database.page("code",condition,{},data.$page,safe(callback));
 });
 

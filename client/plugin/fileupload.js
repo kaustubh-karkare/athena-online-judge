@@ -64,7 +64,7 @@ exports = function(args){
 	// mode: 0=init_empty, 1=init_filled, 2=now_added, 3=now_replaced, 4=now_deleted
 	if(typeof(args.initial)==="object" && args.initial && (!Array.isArray(args.initial) || args.initial.length>0)){
 		if(!args.multiselect) args.initial = [args.initial];
-		args.initial = args.initial.filter(function(f){ return typeof(f)==="object" && f!==null && typeof(f.id)==="string" && typeof(f.name)==="string" && typeof(f.size)==="number"; });
+		args.initial = args.initial.filter(function(f){ return typeof(f)==="object" && f!==null && typeof(f.id)==="string" && typeof(f.name)==="string" && typeof(f.size)==="number" && f.id!==config.dummy.file.id; });
 	} else args.initial = [];
 
 	if(args.initial.length>0) initial = function(){
