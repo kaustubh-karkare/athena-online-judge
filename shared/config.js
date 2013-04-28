@@ -1,0 +1,4 @@
+
+exports = {
+	adminlevel : 2
+};

@@ -58,4 +58,4 @@ io.sockets.on("connection", function(socket){
 });
 
 console.log("Started Webserver ...");
-server.listen(100);
+server.listen(8080);

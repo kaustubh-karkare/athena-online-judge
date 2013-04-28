@@ -37,23 +37,27 @@ var datatypes = {
 	"integer" : function(name,spec,obj,save){
 		var input = $("<input type='number'>");
 		if(obj!==undefined) input.val(parseInt(obj));
+		else if(spec.default!==undefined) input.val(parseInt(spec.default));
 		return [function(cb){ cb(null,parseInt(input[0].value)); }, controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"float" : function(name,spec,obj,save){
 		var input = $("<input type='text'>");
 		if(obj!==undefined) input.val(parseFloat(obj));
+		else if(spec.default!==undefined) input.val(parseFloat(spec.default));
 		return [function(cb){ cb(null,parseFloat(input[0].value)); }, controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"datetime" : function(name,spec,obj,save){
 		var date = $("<input type='date' style='margin-bottom:5px;'>");
 		var time = $("<input type='time'>").attr("name",name+"-time");
 		if(obj!==undefined){ obj = timestamp.from(obj); date.val(obj[0]); time.val(obj[1]); }
+		else if(spec.default!==undefined){ obj = timestamp.from(parseInt(spec.default)); date.val(obj[0]); time.val(obj[1]); }
 		return [function(cb){ cb(null,timestamp.to(date[0].value,time[0].value)); }, controlgroup(spec.title?spec.title:name,[date,"<br>",time])];
 	},
 	"string" : function(name,spec,obj,save){
 		if(spec.long) var input = $("<textarea></textarea>");
 		else var input = $("<input type='"+(spec.password?"password":"text")+"'>");
 		if(obj!==undefined) input.val(String(obj));
+		else if(spec.default!==undefined) input.val(String(spec.default));
 		return [function(cb){ cb((input[0].value.length||spec.optional)?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"select" : function(name,spec,obj,save){

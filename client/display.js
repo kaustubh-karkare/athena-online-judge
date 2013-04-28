@@ -11,9 +11,10 @@ display.top = function(){ $("body").animate({"scrollTop":0},display.duration); }
 display.bottom = function(){ $("body").animate({"scrollTop":$(document).height()},display.duration); };
 display.error = function(msg){ console.log("display.error",msg); };
 
+var path = [];
 var hashchange = function(){
 	if(skip){ skip=false; history.pop(); return; }
-	var path = location.hash.substr(1).split("/").map(function(p){ return decodeURIComponent(p); });
+	path = location.hash.substr(1).split("/").map(function(p){ return decodeURIComponent(p); });
 	if(Object.keys(page).indexOf(path[0])!==-1) page[path[0]].show({"path":path});
 	else if(path[0]==="") $(base+"main").empty();
 	else location.hash="#";
@@ -21,6 +22,8 @@ var hashchange = function(){
 	history = history.concat(location.hash).slice(-2);
 };
 $(window).bind('hashchange',hashchange);
+
+auth.change(function(){ widget.links.show(path); });
 
 display.load = function(){
 	$(document.body).empty().html(template["layout-base"]);

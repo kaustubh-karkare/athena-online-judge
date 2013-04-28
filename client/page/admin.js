@@ -12,7 +12,6 @@ var legend = function(type,collection){
 exports = new page(function(data,callback){
 	var path = data.path;
 	var key = schema[path[1]].keys[0], select = {$collection:path[1]}; select[key] = path[3];
-	var that = this, reload = function(){ that.reload(); };
 	async.series([
 		function(cb){ cb(path[1] in schema?null:"unknown-collection"); },
 		function(cb){
@@ -29,9 +28,8 @@ exports = new page(function(data,callback){
 				collection : path[1],
 				data : result[1],
 				submit : function(data){
-					if(path[2]==="new") location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
-					else if(data!==null) reload();
-					else location.hash = path.slice(0,2).concat("index").join("/");
+					if(data!==null) location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
+					else location.hash = path.slice(0,2).concat("index").join("/"); // delete
 				}
 			})]);
 		if(path[2]==="index"){
@@ -43,4 +41,4 @@ exports = new page(function(data,callback){
 			});
 		}
 	});
-},1);
+},config.adminlevel);

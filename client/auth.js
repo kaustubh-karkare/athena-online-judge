@@ -6,8 +6,8 @@ auth.event = "auth"; auth.user = null; auth.level = 0;
 
 auth.change = function(fn){ auth.on(auth.event,fn); };
 itc.on(auth.event,function(user){
-	auth.user = user;
-	auth.emit(auth.event, auth.level=(user===null?0:parseInt(user.auth)) );
+	auth.user = user; old = auth.level;
+	auth.emit(auth.event, auth.level=(user===null?0:parseInt(user.auth)), old );
 });
 
 auth.login = function(username,password,auto){

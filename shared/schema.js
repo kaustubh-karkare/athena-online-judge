@@ -47,7 +47,7 @@ schema.group = {
 	keys: ["name"],
 	items: {
 		"name": { type: "string", title: "Group Name" },
-		"desc": { type: "string", title: "Description" },
+		"desc": { type: "string", title: "Description", optional: true },
 		"owner": { type: "reference", collection: "user", title: "Owner" },
 		"set": { type: "reference", collection:"set", title:"Set" }
 	}
@@ -57,8 +57,8 @@ schema.set = {
 	type: "document",
 	keys: ["name"],
 	items: {
-		"name": {type:"string",title:"Set Name"},
-		"desc": {type:"string",title:"Description"},
+		"name": { type:"string", title:"Set Name" },
+		"desc": { type:"string", title:"Description", optional:true },
 		"freedom": {
 			type: "select",
 			title: "Freedom",
@@ -86,7 +86,7 @@ schema.set = {
 			},
 			default:0
 		},
-		"limit": {type:"integer",title:"User Limit"}
+		"limit": { type:"integer", title:"User Limit", default:0 }
 	}
 };
 

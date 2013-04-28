@@ -1,7 +1,7 @@
 
 var unauthorized = $("<div style='text-align:center;padding:10px;border:2px solid #eee;border-radius:10px;margin:100px 300px;'>Access Denied<div>");
 
-var current;
+var current = {auth: 0, data:null, reload:misc.nop};
 
 var page = exports = function(){ widget.apply(this,arguments); };
 
@@ -53,10 +53,15 @@ until the transition is over.
 
 page.prototype.reload = function(){
 	lock.acquire(function(){
-		--lock.count;
+		--lock.count; // release lock but dont execute the next function queued
 		current.show(current.data);
 	});
 	return this;
 };
 
-auth.change(function(){ if(current) current.reload(); });
+// only reload when necessary
+auth.change(function(al_new, al_old){
+	if((al_old<current.auth && al_new>=current.auth)
+	|| (al_old>=current.auth && al_new<current.auth))
+		current.reload();
+});

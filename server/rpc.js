@@ -1,6 +1,6 @@
 
 var prefix = "rpc/";
-var log = true;
+var log = !true;
 
 var rpc = exports = new misc.emitter();
 

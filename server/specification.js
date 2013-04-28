@@ -32,7 +32,11 @@ var datatypes = {
 		if(typeof(obj)!=="object" || obj===null || !("_id" in obj)){ callback("corrupt:"+name); return; }
 		var fields = {}; schema[spec.collection].keys.forEach(function(key){ fields[key]=1; });
 		database.get(spec.collection,{_id:obj._id},fields,function(error,result){
-			if(!error) save.references.push(result);
+			if(!error){
+				if(!(spec.collection in save.references)) save.references[spec.collection] = [];
+				if(save.references[spec.collection].indexOf(result._id)===-1)
+					save.references[spec.collection].push(result._id);
+			}
 			callback(error,error===null?result:undefined);
 		});
 	},
@@ -86,7 +90,7 @@ var match_recursive = function(name,spec,obj,callback,save){
 };
 
 var match_common = function(name,spec,obj,callback,complete){
-	var save = {"complete":complete,"files":[],"references":[]};
+	var save = {"complete":complete,"files":[],"references":{}};
 	match_recursive(name,spec,obj,function(error,result){
 		if(save.complete===1 && error===null && "keys" in spec &&
 			spec.keys.filter(function(key){ return key in result; }).length===0) error = "incomplete";

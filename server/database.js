@@ -28,7 +28,10 @@ database.nextid = function(collection,callback){
 };
 database.get = function(collection,query,options,callback){
 	database.select(collection,query,options,function(error,result){
-		if(error===null && result.length!=1) callback(result.length?"multiple-matches":"not-found");
+		if(error===null && result.length!=1){
+			console.log(result.length?"multiple-matches":"not-found", query);
+			callback(result.length?"multiple-matches":"not-found");
+		}
 		else callback(error,result[0]);
 	});
 };
