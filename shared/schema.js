@@ -20,12 +20,12 @@ add (string) = applicable for arrays, the text to display on the "Add New Elemen
 
 schema.user = {
 	type: "document",
-	keys: ["username"],
+	keys: ["username","realname"],
 	items: {
 		"username": { type: "string", title: "Username" },
 		"password": { type: "string", title: "Password", password: true },
 		"email": { type: "string", title: "EMail Address" },
-		"realname": { type: "string", title: "Real Name" },
+		"realname": { type: "string", title: "Real Name", unique: false },
 		"image": { type: "file", title: "Profile Picture", optional: true },
 		"groups": {
 			type: "array",
@@ -232,5 +232,24 @@ schema.code = {
 			default: 0
 		},
 		"time": { type: "integer", title: "Submission Time", datetime: true }
+	}
+};
+
+schema.comment = {
+	type: "document",
+	keys: ["name"],
+	items: {
+		"name": { type: "string", title: "Name" },
+		"location": { type: "string", title: "Location" },
+		"replyto": { type: "reference", collection: "comment", optional: true, title: "Reply To" },
+		"user": { type: "reference", collection: "user", title: "User" },
+		"time": { type: "integer", title: "Submission Time", datetime: true },
+		"message": { type: "string", title: "Message", long: true },
+		"access": {
+			type: "select",
+			title: "Access",
+			options: { 0: "Private", 1: "Public" },
+			default: 0
+		}
 	}
 };

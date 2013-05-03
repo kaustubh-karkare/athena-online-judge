@@ -76,7 +76,7 @@ var datatypes = {
 		var fileinput = plugin.fileupload({"initial":obj});
 		save.file_interface.push(fileinput.interface);
 		return [function(cb){
-			fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
+			fileinput.interface.result(function(e,r){
 				if(e===null && !spec.optional && r===null) cb("empty:"+name); else cb(e,r);
 			});
 		},controlgroup(spec.title?spec.title:name,fileinput.node)];
@@ -96,7 +96,7 @@ var datatypes = {
 			var fileinput = plugin.fileupload({"initial":obj,"multiselect":true});
 			save.file_interface.push(fileinput.interface);
 			return [function(cb){
-				fileinput.interface.upload(function(x,y){ save.file_progress(name,x,y); },function(e,r){
+				fileinput.interface.result(function(e,r){
 					if(e===null && !spec.optional && r.length===0) cb("empty:"+name); else cb(e,r);
 				});
 			},controlgroup(spec.title?spec.title:name,fileinput.node)];
@@ -164,23 +164,13 @@ var datatypes = {
 	"document" : function(name,spec,obj,args){
 		var id = parseInt(typeof(obj)==="object" && obj!==null ? obj._id : null);
 		var form = $("<form name='"+name.quotes()+"' class='form-horizontal'>");
-		var save = {"file_interface":[], filetracker:{}, "file_progress":function(name,c,t){
-			save.filetracker[name] = [c,t];
-			var current=0, total=0;
-			Object.keys(save.filetracker).forEach(function(name){
-				current+=save.filetracker[name][0];
-				total+=save.filetracker[name][1];
-			});
-			// console.log(current/total);
-		}};
+		var save = {"file_interface":[]};
 		var result = generate_recursive(name,{type:"object",items:spec.items},obj,save);
 
 		// prepare handlers for submit events
 		if(typeof(args.submit)!=="function") args.submit = misc.nop;
 		var submit = function(error,result){
 			if(error){
-				save.file_interface.forEach(function(fi){ fi.cancel(); });
-				// Messenger().post({message: error, type: 'error', showCloseButton: true });
 				console.log(error);
 			} else {
 				args.submit(result);

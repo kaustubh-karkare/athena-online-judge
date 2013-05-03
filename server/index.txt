@@ -1,10 +1,9 @@
 # comments indicate dependencies
+# shared files to be included before the following
 mongodb
 database # mongodb
 filesystem # mongodb
 specification
 action # database, filesystem, specification
-rpc
-action
+rpc # database, filesystem, specification, action
 webserver # rpc
-test

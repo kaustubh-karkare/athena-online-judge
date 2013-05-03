@@ -1,4 +1,14 @@
 
+rpc.on("socket.connect",function(socket){
+	socket.data.files = [];
+});
+
+rpc.on("socket.disconnect",function(socket){
+	socket.data.files.forEach(function(id){
+		filesystem.file.delete(id,function(e){ console.log("socket.disconnect","file.delete",id,e); });
+	});
+});
+
 var uploads = {};
 var check_ints = ["size","offset"];
 var blocksize = 100*1024; // 100KB
@@ -49,6 +59,14 @@ rpc.on("file.upload.cancel",function(socket,data,callback){
 		function(cb){ filesystem.file.close(data.id,function(e){ cb(e); }); },
 		function(cb){ filesystem.file.delete(data.id,function(e){ cb(e); }); }
 	], function(e){ delete uploads[data.id]; callback(e); });
+});
+
+rpc.on("file.upload.delete",function(socket,data,callback){
+	var e = check(["id"],data); if(e){ callback(e); return; }
+	async.waterfall([
+		function(cb){ cb(socket.data.files.indexOf(data.id)===-1?"unauthorized":null); },
+		function(cb){ filesystem.file.delete(data.id,function(e){ cb(e); }); }
+	], function(e){ socket.data.files.remove(data.id); callback(e); });
 });
 
 rpc.on("file.download",function(socket,data,callback){

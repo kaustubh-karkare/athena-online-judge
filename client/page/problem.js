@@ -20,7 +20,7 @@ exports = new page(function(data,callback){
 				return "<a class='btn "+(path[4]===x?"btn-primary":"")+"' href='"+path.slice(0,4).concat(x).hash()+"'>"+x.ucwords()+"</a> ";
 			}))
 		);
-		
+
 		if(path[4]==="statement" || path[4]==="tutorial"){
 			if(path[5]==="edit"){
 				var main = $("<div class='problem'><textarea></textarea></div>");
@@ -50,6 +50,8 @@ exports = new page(function(data,callback){
 				if(auth.level>=authlevel) main.append($("<div style='text-align:center;margin-top:20px;'>").append([
 					"<a href='"+path.slice(0,5).concat("edit").hash()+"' class='btn'>Edit "+path[4].ucwords()+"</a>"
 				]));
+				main.append("<br><br><legend>Comments/Clarifications</legend>");
+				main.append(plugin.comment({"location":"C"+result.contest._id+"P"+result.problem._id+path[4].substr(0,1).toUpperCase()}).node);
 			}
 		} else {
 			var main = plugin.pagination({
@@ -81,18 +83,18 @@ exports = new page(function(data,callback){
 			var uploadbtn = $("<span class='btn pull-right' style='width:100px;'>Load from File</span>");
 			uploadbtn.click(function(){ upload.click(); });
 			var submit = $("<form class='problem'>").append([
-				"<legend>Submit a Solution</legend>",
+				"<br><legend>Submit a Solution</legend>",
 				"<span style='position:relative;top:-5px;'>Language :</span> ", lang.node, uploadbtn, textarea,
 				"<input type='submit' value='Submit Code' class='btn pull-right' style='width:126px;margin:10px 0px;'>"
 			]).submit(function(){
 				rpc("code.submit",{"contest":{_id:result.contest._id},"problem":{_id:result.problem._id},"code":editor?editor.getValue():textarea[0].value,"language":lang.value()},function(e,r){
-					if(e===null) location.hash=path.slice(0,4).concat(["code",r._id+""]).hash();
+					if(e===null) location.hash=path.slice(0,4).concat(["code",r+""]).hash();
 					else display.error(e);
 				});
 				return false;
 			});
 		} else var submit = $();
 
-		callback(null,$("<div>").append([ heading, main, "<hr>", submit ]));
+		callback(null,$("<div>").append([ heading, main, submit ]));
 	});
 });

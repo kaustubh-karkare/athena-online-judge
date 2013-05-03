@@ -38,14 +38,25 @@ action.insert = function(socket,data,callback){
 		// prevent collisions for keys
 		function(cb){
 			async.parallel(schema[collection].keys.filter(function(key){
-				return key!=="_id";
-			}).map(function(key){
+				return key!=="_id" && !schema[collection].items[key].unique;
+			}).concat(
+				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique; })
+			).map(function(key){
 				var select = {}; select[key] = item[key];
 				return function(cb2){ database.prevent(collection,select,{},cb2); };
 			}),cb);
 		},
 		// calculate the actual value _id and replace the dummy value
-		function(cb){ database.nextid(collection,function(e,n){ if(!e) item._id=n; cb(e); }); },
+		function(cb){
+			database.nextid(collection,function(e,n){
+				if(!e){
+					item._id=n;
+					if("$id" in data && Array.isArray(data["$id"]))
+						data["$id"].forEach(function(x){ item[x]=""+n; });
+				}
+				cb(e);
+			});
+		},
 		// detach the newly uploaded files from the socket
 		function(cb){ socket.data.files.remove(save.files.map(function(f){ return f.id; })); cb(null); },
 		// prepare to update other referenced items
@@ -78,8 +89,10 @@ action.update = function(socket,data,callback){
 		// prevent collisions for keys
 		function(cb){
 			async.parallel(schema[collection].keys.filter(function(key){
-				return key!=="_id";
-			}).map(function(key){
+				return key!=="_id" && !schema[collection].items[key].unique;
+			}).concat(
+				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique; })
+			).map(function(key){
 				var select = {"_id":{"$ne":id}}; select[key] = item2[key];
 				return function(cb2){ database.prevent(collection,select,{},cb2); };
 			}),cb);
@@ -93,7 +106,7 @@ action.update = function(socket,data,callback){
 			// for all those rows to which references not longer exist, remove remote back-references
 			var x = {"$pop":{}}; x["$pop"]["_refs."+collection] = id;
 			for(key in save1.references) save1.references[key].forEach(function(id){
-				if(save2.references[key].indexOf(id)!==-1) return; // unchanged => skip
+				if(Array.isArray(save2.references[key]) && save2.references[key].indexOf(id)!==-1) return; // unchanged => skip
 				refs.push(function(key,id){
 					return function(cb2){ database.update(key,{"_id":id},x,{},cb2); };
 				}(key,id));
@@ -101,7 +114,7 @@ action.update = function(socket,data,callback){
 			// for all those rows to which references have just come into existance, add remote back-references
 			var x = {"$push":{}}; x["$push"]["_refs."+collection] = id;
 			for(key in save2.references) save2.references[key].forEach(function(id){
-				if(save1.references[key].indexOf(id)!==-1) return; // unchanged => skip
+				if(Array.isArray(save1.references[key]) && save1.references[key].indexOf(id)!==-1) return; // unchanged => skip
 				refs.push(function(key,id){
 					return function(cb2){ database.update(key,{"_id":id},x,{},cb2); };
 				}(key,id));

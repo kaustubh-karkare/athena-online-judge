@@ -28,7 +28,8 @@ exports = new page(function(data,callback){
 				collection : path[1],
 				data : result[1],
 				submit : function(data){
-					if(data!==null) location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
+					if(path[2]==="new") location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
+					else if(data!==null) exports.reload(); // modify
 					else location.hash = path.slice(0,2).concat("index").join("/"); // delete
 				}
 			})]);

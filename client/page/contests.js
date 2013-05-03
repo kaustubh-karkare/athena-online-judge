@@ -1,7 +1,7 @@
 
 exports = new page(function(data,callback){
 	var path = data.path, past, future;
-	var render = function(item,cb){ cb(null,item===null?["Contest Name","Timings"]:[item.name,misc.datetime.abs(item.start)+" to<br>"+misc.datetime.abs(item.end)]); }
+	var render = function(item,cb){ cb(null,item===null?["Contest Name","Timings"]:[item.name,[datetime.abs(item.start)," to<br>",datetime.abs(item.end)]]); }
 	var click = function(item){ location.hash = "#contest/"+item.name.urlencode(); };
 	var spec = { "rpc":"contest.list", "page":{"size":10}, "render": render, "click": click };
 	async.parallel([
@@ -11,7 +11,11 @@ exports = new page(function(data,callback){
 		if(error){ callback(error); return; }
 		var top = $("<div>").append([
 			$("<div class='half'>").append(["<legend>Past Contests",past.node]),
-			$("<div class='half'>").append(["<legend>Ongoing/Upcoming Contests",future.node])
+			$("<div class='half'>").append(["<legend>Ongoing/Upcoming Contests",future.node]),
+			$("<div class='full'>").append([
+				"<legend>Comments</legend>",
+				plugin.comment({"location":"C0"}).node
+			])
 		]);
 		callback(null,top);
 	});

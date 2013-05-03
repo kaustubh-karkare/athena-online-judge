@@ -17,6 +17,8 @@ exports = function(args){
 	args.multiselect = !!args.multiselect;
 	var s = (args.multiselect?"(s)":"");
 
+	// Looks
+
 	var top = $("<div>");
 	var input = top.append("<input type='file' style='display:none;'>").children(":first-child");
 	if(args.multiselect) input.attr("multiple","multiple");
@@ -34,7 +36,7 @@ exports = function(args){
 	display.children("span").css("padding","4px 4px");
 
 	var change = function(){
-		var i,count=0,last,total=6;
+		var i,count=0,last,total=5;
 		for(i=0;i<total;++i){
 			count+=arguments[i]?1:0;
 			if(arguments[i]) last=i+1;
@@ -60,56 +62,12 @@ exports = function(args){
 		}).join(", "));
 	};
 
-	var initial, mode, add;
-	// mode: 0=init_empty, 1=init_filled, 2=now_added, 3=now_replaced, 4=now_deleted
-	if(typeof(args.initial)==="object" && args.initial && (!Array.isArray(args.initial) || args.initial.length>0)){
-		if(!args.multiselect) args.initial = [args.initial];
-		args.initial = args.initial.filter(function(f){ return typeof(f)==="object" && f!==null && typeof(f.id)==="string" && typeof(f.name)==="string" && typeof(f.size)==="number" && f.id!==config.dummy.file.id; });
-	} else args.initial = [];
-
-	if(args.initial.length>0) initial = function(){
-		mode=1; change(1,0,1,1,0); // args.multiselect?1:
-		text_display(args.initial); pbar2.css("width","100%");
-	}; else initial = function(){
-		mode=0; change(0,1,0,0,0);
-		text_display([]); pbar2.css("width","0%");
-	};
-
-	var file_change = function(){
-		var files = Array.prototype.slice.call(input[0].files);
-		if(files.length===0){ text_display(files); initial(); }
-		else {
-			if(add){ mode=2; text_display(files.concat(args.initial)); }
-			else { mode=3; text_display(files); }
-			change(0,0,1,0,1); pbar2.css("width","0%"); // args.multiselect?1:
-		}
-	};
-	var file_remove = function(){
-		text.val("File"+s+" to be deleted.");
-		mode = 4; change(0,1,0,0,1); pbar2.css("width","0%");
-	};
-	var file_reset = function(){
-		var attrmap = misc.attrmap(input.replaceWith("<input>")[0]);
-		input = top.children(":first-child");
-		for(var key in attrmap) input.attr(key,attrmap[key]);
-		add=false; input.change(file_change);
-		initial();
-	};
-	var file_download = function(){ window.location="/download?id="+args.initial[0].id+"&name="+args.initial[0].name.urlencode(); };
-
-	input.change(file_change);
-	text.focus(function(){ if(mode==0){ input.click(); } });
-
-	$(display.children()[1]).click(file_download);
-	$(display.children()[2]).click(function(){ add=true; input.click(); });
-	$(display.children()[3]).click(function(){ add=false; input.click(); });
-	$(display.children()[4]).click(file_remove);
-	$(display.children()[5]).click(file_reset);
-
-	initial();
+	// Uploading Mechanism
+	var interface = {}, uploaded, response_lock = new misc.semaphore(1);
+	var running = 0, totaloffset, totalsize;
 
 	var upload_actual = function(file,progress,callback){
-		progress(0,file_size=file.size);
+		progress(0,file.size);
 		rpc("file.upload.start",{"size":file.size},function(error,id){
 			var length=0, fileReader = new FileReader(); offset = 0;
 			var send = function(error){
@@ -127,38 +85,109 @@ exports = function(args){
 		});
 	};
 
-	var interface = {}, running = 0, offset, file_size;
-	interface.cancel = function(){ --running; };
-	interface.status = function(){ return running>0?[offset,file_size]:null; };
-	interface.upload = function(progress,callback){
-		if(typeof(callback)!=="function") callback = misc.nop;
-		if(++running<=0){ callback("cancelled"); return false; }
+	var upload_manage = function(progress){
 		if(typeof(progress)!=="function") progress = misc.nop;
-		var files = Array.prototype.slice.call(input[0].files);
-		if(files.length==0){
-			if(mode===4) callback(null,args.multiselect?[]:null);
-			else callback(null,args.multiselect?args.initial:(args.initial[0]?args.initial[0]:null));
-			return true;
-		} // beyond this point, mode = 2 or 3 (at least one file selected for upload)
-		var offsets={}, totalsize=0; files.forEach(function(f){ totalsize+=f.size; });
-		files = files.map(function(file){
-			return function(cb){
-				upload_actual(file,function(offset,size){
-					offsets[file.name]=offset;
-					var totaloffset = 0; for(var fn in offsets) totaloffset += offsets[fn];
-					pbar2.css("width",Math.floor(100*totaloffset/totalsize)+"%");
-					progress(totaloffset,totalsize);
-				},function(error,result){
-					if(error) pbar2.css("width","0%");
-					cb(error,result);
-				});
-			};
+		response_lock.acquire(function(){
+			if(++running<=0) return false;
+			var offsets={}; totaloffset = 0; totalsize = 0;
+			var files = Array.prototype.slice.call(input[0].files);
+			files.forEach(function(f){ totalsize+=f.size; });
+			files = files.map(function(file){
+				return function(cb){
+					upload_actual(file,function(offset,size){
+						offsets[file.name]=offset;
+						totaloffset = 0; for(var fn in offsets) totaloffset += offsets[fn];
+						pbar2.css("width",Math.floor(100*totaloffset/totalsize)+"%");
+						progress(totaloffset,totalsize);
+					},function(error,result){
+						if(error) pbar2.css("width","0%");
+						cb(error,result);
+					});
+				};
+			});
+			async[args.parallel?"parallel":"series"](files,function(error,result){
+				uploaded = (error===null?result:undefined);
+				response_lock.release();
+			});
 		});
-		async[args.parallel?"parallel":"series"](files,function(error,result){
-			callback(error, (error===null && args.multiselect) ? result.concat(mode===2?args.initial:[]) : result[0] );
-		});
-		return true;
 	};
+
+	var upload_cancel = function(done){
+		--running;
+		response_lock.acquire(function(){
+			if(Array.isArray(uploaded)) uploaded.forEach(function(f){ rpc("file.upload.delete",{"id":f.id},misc.nop); });
+			response_lock.release();
+			done();
+		});
+	};
+
+	interface.start = function(progress){ upload_manage(progress); };
+	interface.stop = function(){ upload_cancel(); };
+	interface.status = function(){ return running>0?[totaloffset,totalsize]:null; };
+	interface.result = function(callback){
+		if(typeof(callback)!=="function") callback = misc.nop;
+		response_lock.acquire(function(){
+			if(input[0].files.length===0){
+				if(mode===3) callback(null,args.multiselect?[]:null);
+				else callback(null,args.multiselect?args.initial:(args.initial[0]?args.initial[0]:null)); // mode 0 or 1
+			} else callback(null,args.multiselect?uploaded:uploaded[0]); // mode 2
+			response_lock.release();
+		});
+	};
+
+	// Button Click Behaviour
+
+	var initial, mode; // mode: 0=init_empty, 1=init_filled, 2=now_replaced, 3=now_deleted
+
+	if(typeof(args.initial)==="object" && args.initial && (!Array.isArray(args.initial) || args.initial.length>0)){
+		if(!args.multiselect) args.initial = [args.initial];
+		args.initial = args.initial.filter(function(f){ return typeof(f)==="object" && f!==null && typeof(f.id)==="string" && typeof(f.name)==="string" && typeof(f.size)==="number" && f.id!==config.dummy.file.id; });
+	} else args.initial = [];
+
+	if(args.initial.length>0) initial = function(){
+		mode=1; change(1,0,1,1,0);
+		text_display(args.initial); pbar2.css("width","100%");
+	}; else initial = function(){
+		mode=0; change(0,1,0,0,0);
+		text_display([]); pbar2.css("width","0%");
+	};
+
+	var file_change = function(){
+		var files = Array.prototype.slice.call(input[0].files);
+		text_display(files);
+		if(files.length===0) initial();
+		else {
+			mode=2;
+			change(0,0,1,0,1);
+			pbar2.css("width","0%");
+			upload_manage();
+		}
+	};
+	var file_remove = function(){
+		text.val("File"+s+" to be deleted.");
+		mode = 3; change(0,0,0,0,1); pbar2.css("width","0%");
+	};
+	var file_reset = function(){
+		upload_cancel(function(){
+			var attrmap = misc.attrmap(input.replaceWith("<input>")[0]);
+			input = top.children(":first-child");
+			for(var key in attrmap) input.attr(key,attrmap[key]);
+			input.change(file_change);
+			initial();
+		});
+	};
+	var file_download = function(){ window.location="/download?id="+args.initial[0].id+"&name="+args.initial[0].name.urlencode(); };
+
+	input.change(file_change);
+	text.focus(function(){ if(mode==0){ input.click(); } });
+
+	$(display.children()[1]).click(file_download);
+	$(display.children()[2]).click(function(){ input.click(); });
+	$(display.children()[3]).click(function(){ input.click(); });
+	$(display.children()[4]).click(file_remove);
+	$(display.children()[5]).click(file_reset);
+
+	initial();
 
 	return {"node":top,"interface":interface};
 };
