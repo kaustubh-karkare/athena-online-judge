@@ -2,7 +2,7 @@
 exports = new page(function(data,callback){
 	var path = data.path, past, future;
 	var render = function(item,cb){ cb(null,item===null?["Contest Name","Timings"]:[item.name,[datetime.abs(item.start)," to<br>",datetime.abs(item.end)]]); }
-	var click = function(item){ location.hash = "#contest/"+item.name.urlencode(); };
+	var click = function(item){ location.hash = ["contest",item.name].hash(); };
 	var spec = { "rpc":"contest.list", "page":{"size":10}, "render": render, "click": click };
 	async.parallel([
 		function(cb){ spec.data="past"; spec.loaded=cb; past = plugin.pagination(spec); },
@@ -17,6 +17,6 @@ exports = new page(function(data,callback){
 				plugin.comment({"location":"C0"}).node
 			])
 		]);
-		callback(null,top);
+		callback(null,top[0]);
 	});
 });

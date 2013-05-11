@@ -30,12 +30,13 @@ var datatypes = {
 		if(spec.optional && obj===null){ callback(null,null); return; }
 		if(typeof(obj)!=="object" || obj===null || !("_id" in obj))
 			{ callback( save.fix?null:"corrupt:"+name, save.fix?config.dummy.reference:undefined ); return; }
-		var fields = {}; schema[spec.collection].keys.forEach(function(key){ fields[key]=1; });
-		database.get(spec.collection,{_id:obj._id},fields,function(error,result){
+		database.get(spec.collection,{_id:obj._id},{},function(error,item){
 			if(error){
 				if(save.fix && error==="not-found") callback(null,config.dummy.reference);
 				else callback(error);
 			} else {
+				var result = {};
+				schema[spec.collection].keys.sort().forEach(function(key){ result[key]=item[key]; });
 				if(!(spec.collection in save.references)) save.references[spec.collection] = [];
 				if(save.references[spec.collection].indexOf(result._id)===-1)
 					save.references[spec.collection].push(result._id);
@@ -58,7 +59,13 @@ var datatypes = {
 	},
 	"array" : function(name,spec,obj,callback,save){
 		var i, result = [];
-		if(!Array.isArray(obj)){ callback("corrupt:"+name); return; }
+		if(!Array.isArray(obj))
+			if(spec.optional) obj = [];
+			else if(save.fix){
+				match_recursive(name+".x",spec.items,obj,function(e,r){ callback(e,e?null:[r]); },save);
+				return;
+			}
+			else { callback("corrupt:"+name+"//spec:"+JSON.stringify(spec)); return; }
 		for(i=0;i<obj.length;++i)
 			result.push(function(i){
 				return function(cb){ match_recursive(name+"."+i,spec.items,obj[i],cb,save); };

@@ -1,8 +1,7 @@
 
-var widget = exports = function(disp,auth){
+var widget = exports = function(disp){
 	this.element = $();
 	this.display = (typeof(disp)==="function"?disp:function(data,cb){ cb(null,JSON.stringify(data)); });
-	this.auth = (auth===undefined?0:auth);
 };
 
 widget.prototype.bind = function(e){
@@ -19,8 +18,8 @@ widget.prototype.show = function(data){
 		first.css("position","absolute").fadeOut(display.duration,function(){ first.remove(); });
 		second.append(r).fadeIn(display.duration);
 	};
-	if(auth.level<this.auth) process("unauthorized");
-	else this.display.call(this,data,process);
+	// if(auth.level<this.auth) process("unauthorized");
+	this.display.call(this,data,process);
 };
 
 widget.prototype.hide = function(){

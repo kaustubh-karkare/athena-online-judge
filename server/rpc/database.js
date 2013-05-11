@@ -37,7 +37,7 @@ rpc.on("database.pagination",function(socket,data,callback){
 		function(cb){ specification.match_partial(collection,schema[collection],data,function(e,i){ if(!e) item=i; cb(e); }); },
 		function(cb){
 			if("_id" in item) item._id = {"$in":[item._id],"$nin":[0]}; else item._id = {"$nin":[0]};
-			database.page(collection,item,{_ref:0},data.$page,function(e,r){ if(!e) result=r; cb(e); });
+			database.page(collection,item,{},data.$page,function(e,r){ if(!e) result=r; cb(e); });
 		}
 	], function(error){ callback(error,result); });
 });
@@ -46,7 +46,7 @@ rpc.on("database.pagination",function(socket,data,callback){
 
 rpc.on("database.suggest",function(socket,data,callback){
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
-	var item, result, key = schema[collection].keys[0], columns = {};
+	var item, result, key = schema[collection].keys.filter(function(k){ return k!=="_id" })[0], columns = {};
 	schema[collection].keys.forEach(function(x){ columns[x]=1; });
 	async.series([
 		function(cb){ specification.match_partial(collection,schema[collection],data,function(e,i){ if(!e) item=i; cb(e); }); },
@@ -58,6 +58,8 @@ rpc.on("database.suggest",function(socket,data,callback){
 			if(key in item) item[key] = RegExp(RegExp.quote(item[key]),"i");
 			cb(null);
 		},
-		function(cb){ database.page(collection,item,columns,{"number":1,"size":5,"sort":key},function(e,r){ if(!e) result=r; cb(e); }); }
+		function(cb){
+			database.page(collection,item,columns,{"number":1,"size":5,"sort":key},function(e,r){ if(!e) result=r; cb(e); });
+		}
 	], function(error){ callback(error,result); });
 });

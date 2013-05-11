@@ -1,7 +1,7 @@
 
 exports = new widget(function(data,callback){
 	var form = $("<form id='widget-login'>"), lower, upper, submit;
-	if(auth.level===0){
+	if(auth.user===null){
 		form.append(upper=$("<input type='text' placeholder='Username'>"));
 		form.append(lower=$("<input type='password' placeholder='Password'>"));
 		form.append(submit=$("<input type='submit' value='Log In' class='btn'>"));

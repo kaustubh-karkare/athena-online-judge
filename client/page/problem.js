@@ -1,12 +1,13 @@
 
 var authlevel = 2; // for editting statement/tutorial
 var tabs = ["statement","tutorial","submissions"];
+var pstyle = "text-align:justify; padding:0px 10px;";
 
 exports = new page(function(data,callback){
 	var path = data.path;
-	if(path[4]==="code" && !isNaN(parseInt(path[5]))) { callback("redirect","code"); return; }
+	if(path[4]==="code" && !isNaN(parseInt(path[5]))) { callback("load","code"); return; }
 	if(path[4]===undefined) path[4] = "statement";
-	else if(tabs.indexOf(path[4])===-1){ location.hash = path.slice(0,4).hash(); return; }
+	else if(tabs.indexOf(path[4])===-1){ callback("redirect",path.slice(0,4).hash()); return; }
 	async.parallel({
 		"contest": function(cb){ rpc("contest.display",path[1],cb); },
 		"problem": function(cb){ rpc("problem.display",path[3],cb); }
@@ -23,7 +24,7 @@ exports = new page(function(data,callback){
 
 		if(path[4]==="statement" || path[4]==="tutorial"){
 			if(path[5]==="edit"){
-				var main = $("<div class='problem'><textarea></textarea></div>");
+				var main = $("<div style='"+pstyle+"'><textarea></textarea></div>");
 				var t = main.find("textarea")[0]; t.value = result.problem[path[4]];
 				window.setTimeout(function(){
 					var editor = CodeMirror.fromTextArea(t,{mode:CodeMirror.loadMode("Markdown")});
@@ -40,7 +41,7 @@ exports = new page(function(data,callback){
 				},0);
 			} else {
 				var html = Markdown.getSanitizingConverter().makeHtml(result.problem[path[4]]);
-				var main = $("<div class='problem'>"+html+"</div>");
+				var main = $("<div style='"+pstyle+"'>"+html+"</div>");
 				main.find("a,img").each(function(i,e){
 					url = (e.nodeName==="A"?e.href:e.src).match(/\/([^\/]+)$/,""); url = url?url[1]:url;
 					var f = result.problem.files.filter(function(f){ console.log(f.name,url); return f.name===url; });
@@ -58,43 +59,52 @@ exports = new page(function(data,callback){
 				"rpc":"code.list",
 				"page":{"size":25},
 				"data":{"contest":result.contest._id,"problem":result.problem._id},
-				"render":function(item,cb){ cb(null,item===null?["Code ID","User","Language"]:
-					[item._id,item.user.username.htmlentities(),item.language.name.htmlentities()]); },
+				"render":function(item,cb){ cb(null,item===null?["Code ID","User","Language","Result"]:
+					[
+						item._id,
+						"<a href='"+["user",item.user.username].hash()+"'>"+item.user.realname.htmlentities()+"</a>",
+						item.language.name.htmlentities(),
+						schema.code.items.result.options[item.result]
+					]); },
 				"click": function(item){ location.hash = path.slice(0,4).concat("code",item._id).hash(); }
 			}).node;
 		}
 
 		if(path[4]==="statement" && path[5]!=="edit"){
-			var lang = plugin.suggestion({"collection":"language"});
-			var textarea = $("<textarea name='code'></textarea>");
-			var editor = null;
-			window.setTimeout(function(){
-				editor = CodeMirror.fromTextArea(textarea[0],{mode:"text/plain",lineNumbers:true});
-				$(lang.node).blur(function(){ var v = lang.value(); editor.setOption("mode",CodeMirror.loadMode(v?v.name:v)); });
-			},0);
-			var upload = $("<input type='file'>").change(function(){
-				if(this.files.length===0) return;
-				var file = this.files[0], fileReader = new FileReader();
-				if(file.size>100*1024){ display.error("file.too-large"); return; }
-				fileReader.onload = function(event){ if(editor) editor.setValue(event.target.result); else textarea[0].value = event.target.result; };
-				fileReader.readAsBinaryString(file);
-				return false;
-			});
-			var uploadbtn = $("<span class='btn pull-right' style='width:100px;'>Load from File</span>");
-			uploadbtn.click(function(){ upload.click(); });
-			var submit = $("<form class='problem'>").append([
-				"<br><legend>Submit a Solution</legend>",
-				"<span style='position:relative;top:-5px;'>Language :</span> ", lang.node, uploadbtn, textarea,
-				"<input type='submit' value='Submit Code' class='btn pull-right' style='width:126px;margin:10px 0px;'>"
-			]).submit(function(){
-				rpc("code.submit",{"contest":{_id:result.contest._id},"problem":{_id:result.problem._id},"code":editor?editor.getValue():textarea[0].value,"language":lang.value()},function(e,r){
-					if(e===null) location.hash=path.slice(0,4).concat(["code",r+""]).hash();
-					else display.error(e);
+			var submit = $("<form style='"+pstyle+"'>").append("<br><br><legend>Submit a Solution</legend>");
+			if(auth.user!==null){
+				var lang = plugin.suggestion({"collection":"language"});
+				var textarea = $("<textarea name='code'></textarea>");
+				var editor = null;
+				window.setTimeout(function(){
+					editor = CodeMirror.fromTextArea(textarea[0],{mode:"text/plain",lineNumbers:true});
+					$(lang.node).blur(function(){ var v = lang.value(); editor.setOption("mode",CodeMirror.loadMode(v?v.name:v)); });
+				},0);
+				var upload = $("<input type='file'>").change(function(){
+					if(this.files.length===0) return;
+					var file = this.files[0], fileReader = new FileReader();
+					if(file.size>100*1024){ display.error("file.too-large"); return; }
+					fileReader.onload = function(event){ if(editor) editor.setValue(event.target.result); else textarea[0].value = event.target.result; };
+					fileReader.readAsBinaryString(file);
+					return false;
 				});
-				return false;
-			});
+				var uploadbtn = $("<span class='btn pull-right' style='width:100px;'>Load from File</span>");
+				uploadbtn.click(function(){ upload.click(); });
+				submit.append([
+					"<span style='position:relative;top:-5px;'>Language :</span> ", lang.node, uploadbtn, textarea,
+					"<input type='submit' value='Submit Code' class='btn pull-right' style='width:126px;margin:10px 0px;'>"
+				]).submit(function(){
+					rpc("code.submit",{"contest":{_id:result.contest._id},"problem":{_id:result.problem._id},"code":editor?editor.getValue():textarea[0].value,"language":lang.value()},function(e,r){
+						if(e===null) location.hash=path.slice(0,4).concat(["code",r+""]).hash();
+						else display.error(e);
+					});
+					return false;
+				});
+			} else submit.append("<div class='well well-small'>You need to be logged in to be able to submit solutions.</div>");
 		} else var submit = $();
 
-		callback(null,$("<div>").append([ heading, main, submit ]));
+		callback(null,$("<div>").append([ heading, main, submit ])[0]);
 	});
 });
+
+auth.change(function(){ exports.reload(); });

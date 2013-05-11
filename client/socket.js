@@ -15,13 +15,13 @@ leader.on("start",function(){
 	link = io.connect();
 	link.on("connect",function(){
 		link.$emit = socketio.modified_$emit; // global-capture
-		link.emit = socketio.modified_emit; // pre-send
 		link.on(socketio.event_global_receive,function(){
 			var args = Array.prototype.slice.apply(arguments);
 			socket.$emit.apply(socket,args);
 			if(socket.itc_exclude.indexOf(args[0])==-1) itc.emit("socket",args);
 			if(log) console.log("[socket] recv",arguments);
 		});
+		link.emit = socketio.modified_emit; // pre-send
 		link.on(socketio.event_global_presend,function(){
 			if(log) console.log("[socket] send",arguments);
 		});

@@ -24,22 +24,27 @@ exports = new page(function(data,callback){
 		if(error){ callback(error); return; }
 
 		if(path[2]==="new" || path[2]==="edit")
-			callback(null,[legend(path[2],path[1],path[3]),plugin.generateform({
-				collection : path[1],
-				data : result[1],
-				submit : function(data){
-					if(path[2]==="new") location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
-					else if(data!==null) exports.reload(); // modify
-					else location.hash = path.slice(0,2).concat("index").join("/"); // delete
-				}
-			})]);
+			callback(null,$("<div>").append([
+				legend(path[2],path[1],path[3]),
+				plugin.generateform({
+					collection : path[1],
+					data : result[1],
+					submit : function(data){
+						if(path[2]==="new" || data[key]!==path[3]) location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
+						else if(data!==null) exports.reload(); // modify
+						else location.hash = path.slice(0,2).concat("index").join("/"); // delete
+					}
+				})
+			])[0]);
 		if(path[2]==="index"){
 			var p = plugin.pagination({
 				"collection" : path[1],
 				"page" : {"sort":key},
-				"loaded" : function(){ callback(null,[legend(path[2],path[1]),p.node]); },
+				"loaded" : function(){ callback(null,$("<div>").append([legend(path[2],path[1]),p.node])[0]); },
 				"click" : function(item){ location.hash="#admin/"+path[1]+"/edit/"+item[key].urlencode(); }
 			});
 		}
 	});
-},config.adminlevel);
+});
+
+auth.change(function(){ exports.reload(); });

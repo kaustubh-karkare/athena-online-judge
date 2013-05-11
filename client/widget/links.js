@@ -4,7 +4,7 @@ var pages = ["register","contests"];
 exports = new widget(function(path,callback){
 	var links = $("<ul class='nav nav-list'>"), last;
 	pages.forEach(function(name){
-		if(name==="register" && auth.level>0) return;
+		if(name==="register" && auth.level>0) name = "account";
 		last = $("<li><a href='#"+name.urlencode()+"'>"+name.ucwords().htmlentities()+"</a></li>");
 		if(path[0]===name) last.addClass("active");
 		links.append(last);

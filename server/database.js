@@ -29,7 +29,7 @@ database.nextid = function(collection,callback){
 database.get = function(collection,query,options,callback){
 	database.select(collection,query,options,function(error,result){
 		if(error===null && result.length!=1){
-			console.log(result.length?"multiple-matches":"not-found", query);
+			console.log(collection, result.length?"multiple-matches":"not-found", query);
 			callback(result.length?"multiple-matches":"not-found");
 		}
 		else callback(error,result[0]);
@@ -37,6 +37,7 @@ database.get = function(collection,query,options,callback){
 };
 database.prevent = function(collection,query,options,callback){
 	database.select(collection,query,options,function(error,result){
+		if(error?error:result.length>0) console.log(collection,error?error:"matches",query);
 		callback(error?error: result.length>0?"matches": null);
 	});
 };

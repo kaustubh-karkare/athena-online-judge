@@ -30,6 +30,7 @@ exports = function(args){
 		input.val(result.join(", "));
 		saved.append(args.initial.map(wrap));
 	}
+	if(typeof(args.filter)!=="object" || args.filter===null) args.filter = {};
 
 	// The following references to DOM elements will be frequently used later
 	var popover = "div.popover-content "; // container
@@ -102,7 +103,10 @@ exports = function(args){
 		if(newval===oldval) return; else oldval = newval;
 		var aid = $(popover).find("a.active").attr("data-id");
 		// build query
-		var query = {"$exclude":[],"$collection":args.collection}; if(newval.length>0) query[key] = newval;
+		var query = misc.deepcopy(args.filter);
+		query["$exclude"] = [];
+		query["$collection"] = args.collection;
+		if(newval.length>0) query[key] = newval;
 		$(selected).children("a").each(function(i,x){ query["$exclude"].push(parseInt($(x).attr("data-id"))); });
 		if(query["$exclude"].length===0) delete query["$exclude"];
 		// invoke rpc

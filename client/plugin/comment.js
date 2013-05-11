@@ -1,10 +1,10 @@
 
+var replyoffset = 40;
+
 var input = function(interface,location,replyto){
-	return $("<div style='width:100%'>").append([
-		$("<span style='vertical-align:top;'>").append([
-			$("<a style='vertical-align:top;' class='comment-user' href='"+["user",auth.user.username].hash()+"'>"+auth.user.realname.htmlentities()+"</a>"),
-			" "
-		]),
+	return $("<div style='width:100%; text-align:left;'>").append([
+		$("<a style='vertical-align:top; font-weight:bold;' href='"+["user",auth.user.username].hash()+"'>"+auth.user.realname.htmlentities()+"</a>"),
+		" ",
 		$("<textarea>").keyup(function(event){
 			if(event.keyCode!==13 || event.shiftKey || this.value.trim().length===0) return;
 			rpc("comment.insert",{"replyto":replyto===null?null:{"_id":replyto},"location":location,"message":this.value},function(e){
@@ -17,13 +17,14 @@ var input = function(interface,location,replyto){
 
 var format = function(interface,comment){
 	var r1, r2;
-	var r3 = $("<div class='comment-"+(comment.replyto===null?"wrap":"reply")+"'>").append(
+	console.log(comment);
+	var r3 = $("<div style='"+(comment.replyto===null?"padding-bottom:4px; border-bottom:1px solid #ddd; margin-bottom:4px;":"margin-left: "+replyoffset+"px;")+"'>").append(
 		$("<div class='comment-body'>").append([
-			$("<a class='comment-user' href='"+["user",comment.user.username].hash()+"'>"+comment.user.realname.htmlentities()+"</a>"),
+			$("<a style='font-weight:bold;' href='"+["user",comment.user.username].hash()+"'>"+comment.user.realname.htmlentities()+"</a>"),
 			" ",
 			comment.message.htmlentities()
 		]),
-		$("<div class='comment-info'>").append([datetime.abs(comment.time)].concat( auth.user===null ? [] : [
+		$("<div style='color:#999; font-size:11px;'>").append([datetime.abs(comment.time)].concat( auth.user===null ? [] : [
 			" &middot; ",
 			r1 = $("<a class='reply'>Reply</a>")
 		]).concat( auth.level<config.adminlevel || comment.replyto!==null ? [] : [
@@ -43,13 +44,14 @@ var format = function(interface,comment){
 			comment.replyto===null && auth.user ? [r2 = input(interface,comment.location,comment._id)] : []
 		)
 	);
-	r2 && r2.addClass("comment-reply");
+	r2 && r2.css("margin-left",replyoffset);
 	comment.replyto===null && r3.find("a.reply").click(function(){ r2.stop().slideToggle(250); });
 	return r3[0];
 };
 
 var ta_width =function(t){
-	t = $(t).width("100%"); var w = t.width()-t.prev().width()-18;
+	t = $(t).width("100%");
+	var w = t.width()-t.prev().width()-18;
 	t.css({"width":w,"min-width":w,"max-width":w});
 };
 
@@ -67,7 +69,7 @@ exports = function(args){
 				auth.user!==null ? input(interface,args.location,null) :
 				$("<div class='comment-info'>You need to be logged in to be able to post comments.</div>")
 			);
-			if(auth.user!==null){
+			if(auth.user!==null) {
 				ta_width(top.find("textarea").slice(-1));
 				top.find("textarea").slice(0,-1).parent().each(function(i,e){ e = $(e);
 					e.width("100%");

@@ -11,6 +11,7 @@ Object.keys(schema).map(function(collection){
 	schema[collection].keys.push("_id");
 	schema[collection].items["_id"] = {type:"integer",internal:true};
 	schema[collection].keys.forEach(function(key){
+		if(!schema[collection].items[key].unique) return;
 		var field = {}; field[key] = 1;
 		mongodb.ensureIndex(config.database.prefix+collection,field,misc.nop);
 	});
@@ -38,9 +39,9 @@ action.insert = function(socket,data,callback){
 		// prevent collisions for keys
 		function(cb){
 			async.parallel(schema[collection].keys.filter(function(key){
-				return key!=="_id" && !schema[collection].items[key].unique;
+				return key!=="_id" && schema[collection].items[key].unique;
 			}).concat(
-				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique; })
+				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique && schema[collection].keys.indexOf(key)===-1; })
 			).map(function(key){
 				var select = {}; select[key] = item[key];
 				return function(cb2){ database.prevent(collection,select,{},cb2); };
@@ -89,9 +90,9 @@ action.update = function(socket,data,callback){
 		// prevent collisions for keys
 		function(cb){
 			async.parallel(schema[collection].keys.filter(function(key){
-				return key!=="_id" && !schema[collection].items[key].unique;
+				return key!=="_id" && schema[collection].items[key].unique;
 			}).concat(
-				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique; })
+				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique && schema[collection].keys.indexOf(key)===-1; })
 			).map(function(key){
 				var select = {"_id":{"$ne":id}}; select[key] = item2[key];
 				return function(cb2){ database.prevent(collection,select,{},cb2); };
@@ -238,23 +239,23 @@ action.integrity = function(callback){
 		},
 		function(cb){
 			// for each table
-			async.parallel(Object.keys(schema).map(function(name){
+			async.series(Object.keys(schema).map(function(name){
 				return function(cb2){
 					async.waterfall(mongodb.ready(name).concat([
 						// Step 4 : Check each row in each table
 						function(collection,cb3){
 							var cursor = collection.find({"_id":{"$ne":0}});
 							var process = function(e,item){
-								if(e===null && item===null) cb2(null);
+								if(e===null && item===null) cb3(null);
 								else async.waterfall([
 									function(cb4){ cb4(e); },
 									// 4.1 : Fix the current object
-									function(cb4){ specification.match_repair(name,schema[name],item,function(e,r,s){ cb4(e,r,s); }); },
+									function(cb4){ var backref = item._refs ? item._refs : {}; specification.match_repair(name,schema[name],item,function(e,r,s){ r._refs = backref; cb4(e,r,s); }); },
 									// 4.2 : Update the current object
-									function(r,s,cb4){ console.log(name,r,s); collection.update({_id:r._id},r,{},function(e){ cb4(e,r,s); }); },
+									function(r,s,cb4){ collection.update({_id:r._id},r,{},function(e){ cb4(e,r,s); }); },
 									// 4.3 : Update back-references
 									function(r,s,cb4){
-										var refs = [], push = {"$push":{}}; push["$push"][name] = r._id;
+										var refs = [], push = {"$push":{}}; push["$push"]["_refs."+name] = r._id;
 										for(var name2 in s.references) s.references[name2].forEach(function(id){
 											refs.push(function(name2,id){
 												return function(cb5){ database.update(name2,{"_id":id},push,{},cb5); };
@@ -265,9 +266,9 @@ action.integrity = function(callback){
 									// 4.5 : Update files
 									function(r,s,cb4){
 										s.files.forEach(function(f){ files.remove(f.id); });
-										cb(null);
+										cb4(null);
 									}
-								], function(e){ if(e) cb2(e); else cursor.nextObject(process); })
+								], function(e){ if(e) cb3(e); else cursor.nextObject(process); })
 							}; // process
 							cursor.nextObject(process);
 						} // function:cb3

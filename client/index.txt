@@ -11,4 +11,4 @@ auth
 widget
 page
 display
-test
+main

@@ -7,15 +7,13 @@ types = integer, float,  string, select, reference, file, array, object, documen
 
 title (string) = the text visible to the user during dynamic form generation, beside the input field
 password (boolean) = applicable for string type only, makes the input "password" type
-internal (boolean) = skip this key-value pair during dynamic form generation
 optional (boolean) = makes the value optional (empty for string/array type, undefined for reference/file type)
 default (variable) = default value for object to be assumed when not specified
 keys (array) = applicable for document type only, the list of fields to index the collection by
 	_id key is added automatically in server/rpc/database.js
 items (object) = the specification for what an array/object/document contains
 collection (string) = applicable in case of reference type, the name of the collection referred to
-add (string) = applicable for arrays, the text to display on the "Add New Element" button
-
+keys are unique unless specified otherwise
 */
 
 schema.user = {
@@ -24,9 +22,9 @@ schema.user = {
 	items: {
 		"username": { type: "string", title: "Username" },
 		"password": { type: "string", title: "Password", password: true },
-		"email": { type: "string", title: "EMail Address" },
 		"realname": { type: "string", title: "Real Name", unique: false },
-		"image": { type: "file", title: "Profile Picture", optional: true },
+		// "email": { type: "string", title: "EMail Address" },
+		// "image": { type: "file", title: "Profile Picture", optional: true },
 		"groups": {
 			type: "array",
 			title: "Groups",
@@ -44,12 +42,12 @@ schema.user = {
 
 schema.group = {
 	type: "document",
-	keys: ["name"],
+	keys: ["name","set"],
 	items: {
 		"name": { type: "string", title: "Group Name" },
 		"desc": { type: "string", title: "Description", optional: true },
 		"owner": { type: "reference", collection: "user", title: "Owner" },
-		"set": { type: "reference", collection:"set", title:"Set" }
+		"set": { type: "reference", collection:"set", title:"Set", unique: false }
 	}
 };
 
@@ -95,8 +93,6 @@ schema.language = {
 	keys: ["name"],
 	items: {
 		"name": { type: "string", title: "Language Name" },
-		"compile": { type: "string", title: "Compile Command", optional: true },
-		"execute": { type: "string", title: "Execute Command" },
 		"multiplier": { type: "float", title: "Time Limit Multiplier", optional: true }
 	}
 };
@@ -141,7 +137,6 @@ schema.problem = {
 		"tests": {
 			type: "array",
 			title: "Test Data",
-			optional: true,
 			items: {
 				type:"object",
 				items: {
@@ -185,6 +180,23 @@ schema.contest = {
 	}
 };
 
+var result = {
+	type: "select",
+	title: "Result",
+	options: {
+		"NA1" : "Judgement Pending",
+		"NA2" : "Judgement Ongoing",
+		"AC" : "Accepted",
+		"CE" : "Compilation Error",
+		"RTE" : "Run Time Error",
+		"TLE" : "Time Limit Exceeded",
+		"WA" : "Wrong Answer",
+		"PE" : "Presentation Error",
+		"DQ" : "Manually Disqualified"
+	},
+	default: "NA1"
+};
+
 schema.code = {
 	type: "document",
 	keys: ["name"],
@@ -202,34 +214,19 @@ schema.code = {
 			items: {
 				type: "object",
 				items: {
-					"error": { type: "string", title: "Error Message" },
+					"error": { type: "string", title: "Error Message", optional:true },
 					"time": { type: "float", title: "Run Time" },
 					"output": { type: "file", title: "Solution Output", optional: true },
-					"result": {
-						type: "select",
-						title: "Result",
-						options: {
-							"NA1" : "Judgement Pending",
-							"NA2" : "Judgement Ongoing",
-							"AC" : "Accepted",
-							"CE" : "Compilation Error",
-							"RTE" : "Run Time Error",
-							"TLE" : "Time Limit Exceeded",
-							"WA" : "Wrong Answer",
-							"PE" : "Presentation Error",
-							"DQ" : "Manually Disqualified"
-						},
-						default: "NA1"
-					}
+					"result": result
 				}
-			},
-			default: []
+			}
 		},
+		"result": result, // cached, based on the details specified in results array
 		"access": {
 			type: "select",
 			title: "Access",
 			options: { 0: "Private", 1: "Protected", 2: "Public" },
-			default: 0
+			default: "0"
 		},
 		"time": { type: "integer", title: "Submission Time", datetime: true }
 	}

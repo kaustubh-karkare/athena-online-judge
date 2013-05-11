@@ -12,9 +12,13 @@ itc.on(auth.event,function(user){
 
 auth.login = function(username,password,auto){
 	rpc("user.login",{"username":username,"password":password},function(error,result){
-		if(error){ if(!auto) display.error(error); return; }
-		window.localStorage[key] = JSON.stringify([username,password]);
-		itc.broadcast(auth.event,result.user);
+		if(!error) window.localStorage[key] = JSON.stringify([username,password]);
+		if(error){
+			itc.broadcast(auth.event,null);
+			if(!auto) display.error(error);
+			return;
+		}
+		else itc.broadcast(auth.event,result.user);
 	});
 };
 

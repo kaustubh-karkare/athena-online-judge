@@ -32,7 +32,7 @@ rpc.on("comment.load",function(socket,data,callback){ // data = location
 rpc.on("comment.insert",function(socket,data,callback){
 	var id;
 	async.series([
-		function(cb){ cb(socket.data.auth>0?null:"unauthorized"); },
+		function(cb){ cb(socket.data.user!==0?null:"unauthorized"); },
 		function(cb){
 			if(typeof(data)!=="object" || data===null){ cb("corrupt"); return; }
 			data.$collection = "comment";
