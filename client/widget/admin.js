@@ -9,10 +9,12 @@ var legend = function(type,collection){
 	return $("<legend style='width:760px;padding:10px;'>"+text+"<span class='pull-right'><a class='btn' href='#admin/"+collection.urlencode()+"/"+href+"'>"+link+"</a></span></legend>");
 }
 
-exports = new page(function(data,callback){
+exports = new widget(function(data,callback){
+	if(data===undefined) return;
 	var path = data.path;
-	var key = schema[path[1]].keys[0], select = {$collection:path[1]}; select[key] = path[3];
+	var key = misc.primary(path[1]), select = {$collection:path[1]}; select[key] = path[3];
 	async.series([
+		function(cb){ if(auth.level<config.adminlevel) cb("redirect",""); else cb(null); },
 		function(cb){ cb(path[1] in schema?null:"unknown-collection"); },
 		function(cb){
 			if(path[2]==="new") cb(null);
@@ -22,15 +24,15 @@ exports = new page(function(data,callback){
 		}
 	], function(error,result){
 		if(error){ callback(error); return; }
-
 		if(path[2]==="new" || path[2]==="edit")
 			callback(null,$("<div>").append([
 				legend(path[2],path[1],path[3]),
-				plugin.generateform({
+				plugin.form({
 					collection : path[1],
 					data : result[1],
 					submit : function(data){
-						if(path[2]==="new" || data[key]!==path[3]) location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
+						if(path[2]==="new" || (data!==null && data[key]!==path[3]))
+							location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");
 						else if(data!==null) exports.reload(); // modify
 						else location.hash = path.slice(0,2).concat("index").join("/"); // delete
 					}

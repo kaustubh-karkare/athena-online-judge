@@ -101,3 +101,8 @@ misc.attrmap = function(x){
 	$.each(x.attributes, function(i,e){ attrs[e.nodeName]=e.nodeValue; });
 	return attrs;
 };
+
+var primary = {};
+for(var col in schema) primary[col] =
+	Object.keys(schema[col]).filter(function(x){ return !!schema[col][x].primary; })[0];
+misc.primary = function(x){ return primary[x]; };

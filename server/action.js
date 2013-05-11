@@ -1,23 +1,31 @@
 
-// Ensure that the Database Schema has no errors.
-async.parallel(Object.keys(schema).map(function(collection){
-	return function(cb){ specification.verify(collection,schema[collection],cb); };
-}),function(error,result){
-	if(error){ console.log(error); process.exit(); }
-});
-
-// Ensure that all collections are appropriately indexed.
-Object.keys(schema).map(function(collection){
-	schema[collection].keys.push("_id");
-	schema[collection].items["_id"] = {type:"integer",internal:true};
-	schema[collection].keys.forEach(function(key){
-		if(!schema[collection].items[key].unique) return;
-		var field = {}; field[key] = 1;
-		mongodb.ensureIndex(config.database.prefix+collection,field,misc.nop);
-	});
-});
-
 var action = exports = {};
+
+action.initialize = function(callback){
+	async.series([
+		// Step 1 : Specification Verification
+		function(cb){
+			async.parallel(Object.keys(schema).map(function(collection){
+				return function(cb2){ specification.verify(collection,schema[collection],cb2); };
+			}),cb);
+		},
+		// Step 2 : Ensuring Indexes
+		function(cb){
+			var fns = [];
+			Object.keys(schema).map(function(collection){
+				schema[collection]["_id"] = { type:"integer", internal: true };
+				Object.keys(schema[collection]).forEach(function(key){
+					if(schema[collection][key].primary===false) return;
+					var field = {}; field[key] = 1;
+					fns.push(function(cb2){
+						mongodb.ensureIndex(config.database.prefix+collection,field,cb2);
+					}); // fns.push
+				}); // field
+			}); // collection
+			async.parallel(fns,cb);
+		}
+	],function(e){ callback(e); });
+};
 
 /*
 For all actions, `data.$collection` should be a string containing the name of the collection.
@@ -35,14 +43,13 @@ action.insert = function(socket,data,callback){
 	var item, save, refs = [];
 	async.series([
 		// assuming a dummy value for _id, ensure validity of data and obtain list of files & references
-		function(cb){ data._id = -1; specification.match_complete(collection,schema[collection],data,function(e,i,s){ if(!e){ item=i; save=s; } cb(e); }); },
+		function(cb){ data._id = -1; specification.match.complete(collection,schema[collection],data,function(e,i,s){ if(!e){ item=i; save=s; } cb(e); }); },
 		// prevent collisions for keys
 		function(cb){
-			async.parallel(schema[collection].keys.filter(function(key){
-				return key!=="_id" && schema[collection].items[key].unique;
-			}).concat(
-				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique && schema[collection].keys.indexOf(key)===-1; })
-			).map(function(key){
+			async.parallel(Object.keys(schema[collection]).filter(function(key){
+				var x = schema[collection];
+				return x.primary || x.unique;
+			}).map(function(key){
 				var select = {}; select[key] = item[key];
 				return function(cb2){ database.prevent(collection,select,{},cb2); };
 			}),cb);
@@ -84,16 +91,15 @@ action.update = function(socket,data,callback){
 	var id, item1, save1, item2, save2, backref, refs = [];
 	async.series([
 		// ensure validity of data received from client, and obtain list of references & files
-		function(cb){ specification.match_complete(collection,schema[collection],data,function(e,i,s){ if(!e){ item2=i; save2=s; } cb(e); }); },
+		function(cb){ specification.match.complete(collection,schema[collection],data,function(e,i,s){ if(!e){ item2=i; save2=s; } cb(e); }); },
 		// ensure that the item _id is present and extract it
 		function(cb){ if("_id" in item2){ id=item2._id; delete item2._id; cb(null); } else cb("missing:_id"); },
 		// prevent collisions for keys
 		function(cb){
-			async.parallel(schema[collection].keys.filter(function(key){
-				return key!=="_id" && schema[collection].items[key].unique;
-			}).concat(
-				Object.keys(schema[collection].items).filter(function(key){ return !!schema[collection].items[key].unique && schema[collection].keys.indexOf(key)===-1; })
-			).map(function(key){
+			async.parallel(Object.keys(schema[collection]).filter(function(key){
+				var x = schema[collection];
+				return x.primary || x.unique;
+			}).map(function(key){
 				var select = {"_id":{"$ne":id}}; select[key] = item2[key];
 				return function(cb2){ database.prevent(collection,select,{},cb2); };
 			}),cb);
@@ -101,7 +107,7 @@ action.update = function(socket,data,callback){
 		// use the above _id to obtain the current version of the object
 		function(cb){ database.get(collection,{"_id":id},{},function(e,i){ if(!e) item1=i; cb(e); }); },
 		// obtain the current list of references & files
-		function(cb){ backref = item1._refs; specification.match_complete(collection,schema[collection],item1,function(e,i,s){ if(!e){ item1=i; save1=s; } cb(e); }) },
+		function(cb){ backref = item1._refs; specification.match.complete(collection,schema[collection],item1,function(e,i,s){ if(!e){ item1=i; save1=s; } cb(e); }) },
 		// update back-references from other rows to this one
 		function(cb){
 			// for all those rows to which references not longer exist, remove remote back-references
@@ -126,14 +132,17 @@ action.update = function(socket,data,callback){
 		function(cb){
 			var change = false;
 			// check to see if the keys have changed
-			schema[collection].keys.forEach(function(key){ if(item1[key]!==item2[key]) change = true; });
+			Object.keys(schema[collection]).filter(function(key){
+				var x = schema[collection];
+				return x.primary || x.cache;
+			}).forEach(function(key){ if(item1[key]!==item2[key]) change = true; });
 			if(change){
 				// queue updates for all rows that remotely forward-reference this
 				for(var key in backref) backref[key].forEach(function(id){ refs.push(function(key,id){
 					return function(cb2){
 						async.waterfall([
 							function(cb3){ database.get(key,{_id:id},{},function(e,r){ cb3(e,r); }) },
-							function(r,cb3){ specification.match_complete(key,schema[key],r,function(e,r){ cb3(e,r); }); },
+							function(r,cb3){ specification.match.complete(key,schema[key],r,function(e,r){ cb3(e,r); }); },
 							function(r,cb3){ database.update(key,{_id:id},r,{},cb3); }
 						],cb2);
 					};
@@ -150,7 +159,7 @@ action.update = function(socket,data,callback){
 			socket.data.files.remove(save2.files);
 			// delete all files that are no longer referred to by the object
 			async.parallel(save1.files.remove(save2.files).map(function(fid){
-				return function(cb2){ filesystem.file.delete(fid,cb2); };
+				return function(cb2){ filesystem.delete(fid,cb2); };
 			}),cb);
 		},
 		// finally, perform the actual update operation
@@ -169,15 +178,18 @@ action.delete = function(socket,data,callback){
 	var item1, save1, item2, backref, flag = false;
 	async.series([
 		// ensure that the data provided is sufficient to uniquely identify the item
-		function(cb){ specification.match_select(collection,schema[collection],data,function(e,i){ if(!e) item2=i; cb(e); }); },
+		function(cb){
+			if(isNaN(data._id=parseInt(data._id))) cb("corrupt:"+collection+"._id");
+			else { item2 = { "_id": data._id }; cb(null); }
+		},
 		// obtain the item to be deleted from the database
 		function(cb){ database.get(collection,item2,{},function(e,i){ if(!e) item1=i; cb(e); }); },
 		// save backward-references and set marker to prevent another delete operation from starting on the same item
 		function(cb){ backref = item1._refs; if(item1._deleting) cb("deleting"); else database.update(collection,item2,{"$set":{_deleting:true}},{},cb); },
 		// set the flag to indicate that a delete marker has been set and in case of failure must be unset. additionally, get list of files & forward-references
-		function(cb){ flag = true; specification.match_complete(collection,schema[collection],item1,function(e,i,s){ if(!e){ item1=i; save1=s; } cb(e); }); },
+		function(cb){ flag = true; specification.match.complete(collection,schema[collection],item1,function(e,i,s){ if(!e){ item1=i; save1=s; } cb(e); }); },
 		// delete all the attached files
-		function(cb){ async.parallel(save1.files.map(function(f){ return function(cb2){ filesystem.file.delete(f.id,cb2); }; }),cb); },
+		function(cb){ async.parallel(save1.files.map(function(f){ return function(cb2){ filesystem.delete(f.id,cb2); }; }),cb); },
 		// delete all rows that forward-reference this one (ie - have a back-reference here)
 		function(cb){
 			var refs = [];
@@ -217,8 +229,8 @@ action.integrity = function(callback){
 		function(cb){
 			async.series([
 				// 1 : Create a dummy file for broken file references.
-				function(cb2){ filesystem.file.open(config.dummy.file.id,"w",cb2); },
-				function(cb2){ filesystem.file.close(config.dummy.file.id,cb2); },
+				function(cb2){ filesystem.open(config.dummy.file.id,"w",cb2); },
+				function(cb2){ filesystem.close(config.dummy.file.id,cb2); },
 				// 4.4 : Get list of all files in database
 				function(cb2){ filesystem.list(function(e,r){ if(!e) files=r; cb2(e); }) }
 			],function(e){ cb(e); });
@@ -229,7 +241,7 @@ action.integrity = function(callback){
 				return function(cb2){
 					async.waterfall(mongodb.ready(name).concat([
 						// 2 : Create dummy rows in each table for broken row references.
-						function(collection,cb3){ specification.match_repair(name,schema[name],config.dummy.reference,function(e,item){ cb3(e,collection,item); }); },
+						function(collection,cb3){ specification.match.repair(name,schema[name],config.dummy.reference,function(e,item){ cb3(e,collection,item); }); },
 						function(collection,item,cb3){ collection.update(config.dummy.reference,item,{upsert:true},function(e){ cb3(e,collection); }); },
 						// 3 : Remove back-references from all rows of all tables.
 						function(collection,cb3){ collection.update({},{"$unset":{"_refs":1}},{multi:true},cb3); }
@@ -250,7 +262,7 @@ action.integrity = function(callback){
 								else async.waterfall([
 									function(cb4){ cb4(e); },
 									// 4.1 : Fix the current object
-									function(cb4){ var backref = item._refs ? item._refs : {}; specification.match_repair(name,schema[name],item,function(e,r,s){ r._refs = backref; cb4(e,r,s); }); },
+									function(cb4){ var backref = item._refs ? item._refs : {}; specification.match.repair(name,schema[name],item,function(e,r,s){ r._refs = backref; cb4(e,r,s); }); },
 									// 4.2 : Update the current object
 									function(r,s,cb4){ collection.update({_id:r._id},r,{},function(e){ cb4(e,r,s); }); },
 									// 4.3 : Update back-references
@@ -279,7 +291,7 @@ action.integrity = function(callback){
 		function(cb){
 			// 4.6 Delete all unreferenced files.
 			async.parallel(files.map(function(f){
-				return function(cb2){ filesystem.file.delete(f.id,cb2); };
+				return function(cb2){ filesystem.delete(f.id,cb2); };
 			}),cb);
 		}
 	],function(e){ callback(e); });

@@ -1,5 +1,5 @@
 
-exports = new page(function(data,callback){
+exports = new widget(function(data,callback){
 	var path = data.path, past, future;
 	var render = function(item,cb){ cb(null,item===null?["Contest Name","Timings"]:[item.name,[datetime.abs(item.start)," to<br>",datetime.abs(item.end)]]); }
 	var click = function(item){ location.hash = ["contest",item.name].hash(); };

@@ -9,7 +9,7 @@ exports = function(args){
 	if(typeof(args.collection)!=="string") return false;
 
 	var input = $("<input type='text'>");
-	var key = schema[args.collection].keys[0];
+	var key = misc.primary(args.collection);
 	var saved = $("<div id='selected'></div>");
 
 	var wrap = function(x){

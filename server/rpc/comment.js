@@ -67,7 +67,7 @@ rpc.on("comment.access",function(socket,data,callback){
 	async.series([
 		function(cb){ cb(socket.data.auth>=config.adminlevel?null:"unauthorized"); },
 		function(cb){ cb(typeof(data)==="object" && data!==null && !isNaN(data._id=parseInt(data._id))?null:"corrupt") },
-		function(cb){ cb(data.access in schema.comment.items.access.options?null:"corrupt") },
+		function(cb){ cb(data.access in schema.comment.access.options?null:"corrupt") },
 		function(cb){ database.update("comment",{"_id":data._id},{"$set":{"access":data.access}},{},cb); }
 	],function(e){ callback(e); });
 });

@@ -49,40 +49,13 @@ var spawn = function(){
 	return terminal;
 };
 
-var gfs_extract = function(id,path,callback){
-	id = String(id); path = String(path);
-	var offset = 0, size, file, blocksize = 100*1024;
-	if(typeof(callback)!=="function") callback = misc.nop;
-	async.series([
-		function(cb){ filesystem.file.open(id,"r",function(e,r){ size=r.length; cb(e); }); },
-		function(cb){ fs.open(path,"w","777",function(e,r){ file=r; cb(e); }); },
-		function(cb){
-			var nextblock = function(){
-				var length = Math.min(size-offset,blocksize);
-				if(length===0){ cb(null); return; }
-				filesystem.file.read(id,length,function(error,data){
-					if(error){ cb(error); return; }
-					var buffer = new Buffer(data);
-					fs.write(file,buffer,0,buffer.length,null,function(error){
-						if(error){ cb(error); return; }
-						offset+=length; nextblock();
-					});
-				});
-			};
-			nextblock();
-		},
-		function(cb){ filesystem.file.close(id,cb); },
-		function(cb){ fs.close(file,cb); }
-	],function(e){ callback(e); });
-};
-
 var process = function(){
 	var code, problem, judge, solution;
 	async.waterfall(mongodb.ready("code").concat([
 		// Select an unjudged code.
 		function(collection,cb){
 			collection
-				.find({"_id":{"$ne":0},"result":schema.code.items.result.default,"language.name":{"$in":Object.keys(languages)}},{})
+				.find({"_id":{"$ne":0},"result":schema.code.result.default,"language.name":{"$in":Object.keys(languages)}},{})
 				.nextObject(function(e,r){ if(!e) code = r; cb(!e && code===null?"wait":e); });
 		},
 		// Select the problem corresponding to that code.
@@ -117,7 +90,7 @@ var process = function(){
 		function(cb){
 			var id = judge.code.id;
 			judge = languages[judge.language.name](env+"judge");
-			gfs_extract(id,judge.source,cb);
+			filesystem.extract(id,judge.source,cb);
 		},
 		function(cb){
 			if("compile" in judge)
@@ -133,8 +106,8 @@ var process = function(){
 				tests.push(function(cb2){
 					async.series([
 						// create the IO files (assuming the judge needs them)
-						function(cb3){ gfs_extract(test.input.id,env+"input.txt",cb3); },
-						function(cb3){ gfs_extract(test.output.id,env+"output.txt",cb3); },
+						function(cb3){ filesystem.extract(test.input.id,env+"input.txt",cb3); },
+						function(cb3){ filesystem.extract(test.output.id,env+"output.txt",cb3); },
 						// spawn the processes, interlink their IO streams & track evaluation
 						function(cb3){
 							var j = spawn(judge.execute[0],judge.execute[1]);

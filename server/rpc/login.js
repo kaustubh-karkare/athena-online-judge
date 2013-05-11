@@ -4,11 +4,11 @@ rpc.on("socket.connect",function(socket){
 	socket.data.auth = 0;
 });
 
-var spec_login = {type:"object",items:{username:{type:"string"},password:{type:"string"}}};
+var spec_login = {username:{type:"string"},password:{type:"string"}};
 
 rpc.on("user.login",function(socket,data,callback){
 	async.waterfall([
-		function(cb){ specification.match_complete("login",spec_login,data,cb); },
+		function(cb){ specification.match.complete("login",spec_login,data,cb); },
 		function(select,save,cb){ database.get("user",select,{},cb); }
 	], function(error,result){
 		if(error){ callback(error); return; }

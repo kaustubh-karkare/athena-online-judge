@@ -59,6 +59,6 @@ io.sockets.on("connection", function(socket){
 
 exports = {
 	"start" : function(cb){ server.listen(8080,function(e){ cb(e); }); },
-	"end" : function(cb){ server.close(function(e){ cb(e); });  },
+	"end" : function(cb){ cb(null); }, //server.close(function(e){ cb(e); });  },
 	"socket" : { "broadcast" : function(){ io.sockets.emit.apply(io.sockets,arguments); } }
 };

@@ -1,7 +1,7 @@
 
 // #user/dog/edit
 
-exports = new page(function(data,callback){
+exports = new widget(function(data,callback){
 	var reg = data.path[0]==="register";
 	if(!reg) data.path[0] = "user";
 	if(!reg && data.path[1]===undefined)
@@ -26,13 +26,13 @@ exports = new page(function(data,callback){
 			var form = $("<form>");
 			var left = form.append("<div class='half'>").children().last();
 			var table1 = left.append("<table class='table table-striped'>").children().last();
-			var su = function(k){ return schema.user.items[k].title.htmlentities(); };
+			var su = function(k){ return schema.user[k].title.htmlentities(); };
 			table1.append("<tr><th>Field</th><th>Value</th></tr>");
 			table1.append("<tr><td>"+su("username")+"</td><td>"+(reg||auth.level>=config.adminlevel?"<input type='text' name='username' value='"+(reg?"":result.user.username.quotes())+"'>":result.user.username)+"</td></tr>");
 			table1.append("<tr><td>"+su("password")+"</td><td><input type='password' name='password' value='"+(reg?"":result.user.password.quotes())+"'></td></tr>");
 			table1.append("<tr><td>"+su("realname")+"</td><td><input type='text' name='realname' value='"+(reg?"":result.user.realname.quotes())+"'></td></tr>");
 			if(auth.level>=config.adminlevel){
-				var auth_select = plugin.select({options:schema.user.items.auth.options,initial:result.user.auth})
+				var auth_select = plugin.selection({options:schema.user.auth.options,initial:result.user.auth})
 				table1.append($("<tr>").append( $("<td>").append(su("auth")), $("<td>").append(auth_select.node) ));
 			} else var auth_select = null;
 			var right = form.append("<div class='half'>").children().last();
@@ -88,9 +88,9 @@ exports = new page(function(data,callback){
 			var table1 = left.append("<table class='table table-striped'>").children().last();
 			table1.append("<tr><th>Field</th><th>Value</th></tr>");
 			["username","realname","auth"].forEach(function(key){
-				if(key==="auth") val = schema.user.items.auth.options[result.user.auth];
+				if(key==="auth") val = schema.user.auth.options[result.user.auth];
 				else val = result.user[key];
-				table1.append("<tr><td>"+schema.user.items[key].title.htmlentities()+"</td><td>"+val+"</td></tr>");
+				table1.append("<tr><td>"+schema.user[key].title.htmlentities()+"</td><td>"+val+"</td></tr>");
 			});
 			var right = $("<div class='half'>");
 			var table2 = right.append("<table class='table table-striped'>").children().last();

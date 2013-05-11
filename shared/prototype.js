@@ -1,5 +1,5 @@
 Array.prototype.remove = function(that){
-	if(Array.isArray(that)){ for(i=0;i<this.length;++i) if(that.indexOf(this[i])!=-1) this.splice(i--,1); }
+	if(Array.isArray(that)){ for(i=0;i<this.length;++i) if(that.indexOf(this[i])!==-1) this.splice(i--,1); }
 	else { for(i=0;i<this.length;++i) if(this[i]===that) this.splice(i--,1); }
 	return this;
 };

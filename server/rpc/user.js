@@ -34,7 +34,7 @@ rpc.on("user.create",function(socket,data,callback){
 		function(cb){ cb(typeof(data)==="object" && data!==null && typeof(data.groups)==="object" && data.groups!==null ? null : "corrupt"); },
 		function(cb){ rpc.emit("set.list",socket,null,function(e,r){ cb(e,e?null:r); }); },
 		function(s,cb){
-			data.auth = schema.user.items.auth.default;
+			data.auth = schema.user.auth.default;
 			data.groups = verify_groups(socket.data.auth>=config.adminlevel,{groups:[]},s,data.groups);
 			if(!Array.isArray(data.groups)){ cb("corrupt:groups"); return; }
 			data.$collection = "user";

@@ -1,5 +1,5 @@
 
-exports = new page(function(data,callback){
+exports = new widget(function(data,callback){
 	if(data.path[2]==="problem" && data.path[3]!==undefined){ callback("load","problem"); return; }
 	if(data.path[2]!==undefined && data.path[2]!=="submissions"){ callback("redirect",data.path.slice(0,2).hash()); return; }
 	async.series([
@@ -44,7 +44,7 @@ exports = new page(function(data,callback){
 						"<a href='"+["user",item.user.username].hash()+"'>"+item.user.realname.htmlentities()+"</a>",
 						"<a href='"+data.path.slice(0,2).concat("problem",item.problem.name).hash()+"'>"+item.problem.name.htmlentities()+"</a>",
 						item.language.name.htmlentities(),
-						schema.code.items.result.options[item.result]
+						schema.code.result.options[item.result]
 					]); },
 				"click": function(item){ location.hash = data.path.slice(0,2).concat("problem",item.problem.name,"code",item._id).hash(); }
 			}).node

@@ -3,7 +3,7 @@ var authlevel = 2; // for editting statement/tutorial
 var tabs = ["statement","tutorial","submissions"];
 var pstyle = "text-align:justify; padding:0px 10px;";
 
-exports = new page(function(data,callback){
+exports = new widget(function(data,callback){
 	var path = data.path;
 	if(path[4]==="code" && !isNaN(parseInt(path[5]))) { callback("load","code"); return; }
 	if(path[4]===undefined) path[4] = "statement";
@@ -64,7 +64,7 @@ exports = new page(function(data,callback){
 						item._id,
 						"<a href='"+["user",item.user.username].hash()+"'>"+item.user.realname.htmlentities()+"</a>",
 						item.language.name.htmlentities(),
-						schema.code.items.result.options[item.result]
+						schema.code.result.options[item.result]
 					]); },
 				"click": function(item){ location.hash = path.slice(0,4).concat("code",item._id).hash(); }
 			}).node;

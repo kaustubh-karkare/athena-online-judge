@@ -62,7 +62,7 @@ var datatypes = {
 		return [function(cb){ cb((input[0].value.length||spec.optional)?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"select" : function(name,spec,obj,save){
-		var select = plugin.select({"initial":(obj===undefined?spec.default:obj),"options":spec.options});
+		var select = plugin.selection({"initial":(obj===undefined?spec.default:obj),"options":spec.options});
 		return [function(cb){ cb(null,select.value()); }, controlgroup(spec.title?spec.title:name,select.node)]
 	},
 	"reference" : function(name,spec,obj,save){
@@ -74,7 +74,6 @@ var datatypes = {
 	},
 	"file" : function(name,spec,obj,save){
 		var fileinput = plugin.fileupload({"initial":obj});
-		save.file_interface.push(fileinput.interface);
 		return [function(cb){
 			fileinput.interface.result(function(e,r){
 				if(e===null && !spec.optional && r===null) cb("empty:"+name); else cb(e,r);
@@ -94,7 +93,6 @@ var datatypes = {
 		// special case : array of files
 		if(false && spec.items.type==="file"){
 			var fileinput = plugin.fileupload({"initial":obj,"multiselect":true});
-			save.file_interface.push(fileinput.interface);
 			return [function(cb){
 				fileinput.interface.result(function(e,r){
 					if(e===null && !spec.optional && r.length===0) cb("empty:"+name); else cb(e,r);
@@ -159,50 +157,6 @@ var datatypes = {
 			second.push(result[key][1]);
 		});
 		return [function(cb){ async.parallel(first,cb); },$("<div>").append(second)[0]];
-	},
-	
-	"document" : function(name,spec,obj,args){
-		var id = parseInt(typeof(obj)==="object" && obj!==null ? obj._id : null);
-		var form = $("<form name='"+name.quotes()+"' class='form-horizontal'>");
-		var save = {"file_interface":[]};
-		var result = generate_recursive(name,{type:"object",items:spec.items},obj,save);
-
-		// prepare handlers for submit events
-		if(typeof(args.submit)!=="function") args.submit = misc.nop;
-		var submit = function(error,result){
-			if(error){
-				console.log(error);
-			} else {
-				args.submit(result);
-				form.remove(); // self-destruct now that the purpose of this form has been served
-			}
-		};
-
-		// attach the resultant DOM tree to a new form element
-		form.append("<input type='hidden' name='_id' value='"+id+"'>")
-			.append(result[1])
-			.append(controlgroup("","<input type='submit' class='btn btn-primary' style='width:220px;' value='"+(isNaN(id)?"Create New "+name.ucwords().quotes():"Modify "+name.ucwords().quotes()+" Details")+"'>"));
-		if(!isNaN(id)) form
-			.append(controlgroup("","<input type='button' class='btn btn-danger' style='width:220px;' value='Delete "+name.ucwords().quotes()+"'>"))
-			.find("input.btn-danger")
-			.click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc("database.delete",{"$collection":name,"_id":id},submit); });
-
-		// add handlers for submit event
-		var submitlock = false;
-		form.submit(function(){
-			if(submitlock) return false; else submitlock=true;
-			async.waterfall([
-				function(cb){ result[0](cb); },
-				function(data,cb){
-					data.$collection = name;
-					if(!isNaN(id)) data._id = id;
-					rpc("database."+(isNaN(id)?"insert":"update"),data,cb);
-				}
-			],submit);
-			submitlock=false;
-			return false;
-		});
-		return [{},form[0]];
 	}
 };
 
@@ -213,5 +167,47 @@ var generate_recursive = function(name,spec,obj,args){
 
 exports = function(args){
 	if(typeof(args)!=="object" || !(args.collection in schema)) return false;
-	return generate_recursive(args.collection, schema[args.collection], args.data, args)[1];
+	var name = args.collection, spec = schema[args.collection], obj = args.data;
+
+	var id = parseInt(typeof(obj)==="object" && obj!==null ? obj._id : null);
+	var form = $("<form name='"+name.quotes()+"' class='form-horizontal'>");
+	var save = {};
+	var result = generate_recursive(name,{type:"object",items:spec},obj,save);
+
+	// prepare handlers for submit events
+	if(typeof(args.submit)!=="function") args.submit = misc.nop;
+	var submit = function(error,result){
+		if(error){
+			console.log(error);
+		} else {
+			args.submit(result);
+			form.remove(); // self-destruct now that the purpose of this form has been served
+		}
+	};
+
+	// attach the resultant DOM tree to a new form element
+	form.append("<input type='hidden' name='_id' value='"+id+"'>")
+		.append(result[1])
+		.append(controlgroup("","<input type='submit' class='btn btn-primary' style='width:220px;' value='"+(isNaN(id)?"Create New "+name.ucwords().quotes():"Modify "+name.ucwords().quotes()+" Details")+"'>"));
+	if(!isNaN(id)) form
+		.append(controlgroup("","<input type='button' class='btn btn-danger' style='width:220px;' value='Delete "+name.ucwords().quotes()+"'>"))
+		.find("input.btn-danger")
+		.click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc("database.delete",{"$collection":name,"_id":id},submit); });
+
+	// add handlers for submit event
+	var submitlock = false;
+	form.submit(function(){
+		if(submitlock) return false; else submitlock=true;
+		async.waterfall([
+			function(cb){ result[0](cb); },
+			function(data,cb){
+				data.$collection = name;
+				if(!isNaN(id)) data._id = id;
+				rpc("database."+(isNaN(id)?"insert":"update"),data,cb);
+			}
+		],submit);
+		submitlock=false;
+		return false;
+	});
+	return form[0];
 };

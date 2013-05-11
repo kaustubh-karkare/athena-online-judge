@@ -1,183 +1,170 @@
 
-var schema = exports = {};
-
 /*
 
-types = integer, float,  string, select, reference, file, array, object, document
+type = integer, float,  string, select, reference, file, array, object.
 
-title (string) = the text visible to the user during dynamic form generation, beside the input field
-password (boolean) = applicable for string type only, makes the input "password" type
-optional (boolean) = makes the value optional (empty for string/array type, undefined for reference/file type)
-default (variable) = default value for object to be assumed when not specified
-keys (array) = applicable for document type only, the list of fields to index the collection by
-	_id key is added automatically in server/rpc/database.js
-items (object) = the specification for what an array/object/document contains
-collection (string) = applicable in case of reference type, the name of the collection referred to
-keys are unique unless specified otherwise
+general attributes
+	primary = whether or not this attribute is cached, unique (as defined below) & indexed.
+		(there must be exactly one top-level primary attribute in each collection)
+	title = The appropriate label for this input used during dynamic form generation.
+	optional = Whether or not this string/reference/file/array be left empty.
+	cache = Whether or not to save this attribute in all references to this object.
+	unique = Whether or not the values of this top-level field are unique in the collection.
+	default = What value this object should take on if none is specified.
+	internal = Skip this attribute during dynamic form generation. The value will be internally provided.
+integer attributes
+	datetime = whether or not this value represents a timestamp.
+string attributes
+	password = whether or not a password input should be used for this field.
+	long = whether or not a textarea should be used for this field.
+select attributes
+	options (required) = an object contain key-value pairs corresponding to the options.
+	default (required) = the default value of this field.
+reference attributes
+	collection (required) = to which objects of which collection does this reference point to.
+array attributes
+	items (required) = the schema of each of the objects contained in the array
+object attributues
+	items (required) = the schema of this object
+
 */
 
+var schema = exports = {};
+
 schema.user = {
-	type: "document",
-	keys: ["username","realname"],
-	items: {
-		"username": { type: "string", title: "Username" },
-		"password": { type: "string", title: "Password", password: true },
-		"realname": { type: "string", title: "Real Name", unique: false },
-		// "email": { type: "string", title: "EMail Address" },
-		// "image": { type: "file", title: "Profile Picture", optional: true },
-		"groups": {
-			type: "array",
-			title: "Groups",
-			optional: true,
-			items: { type:"reference", collection:"group", title:"Group" }
-		},
-		"auth": {
-			type: "select",
-			title: "Status",
-			options: { 0: "Anonymous", 1: "Normal", 2: "Administrator" },
-			default: 0
-		}
+	"username": { type: "string", title: "Username", primary: true },
+	"password": { type: "string", title: "Password", password: true },
+	"realname": { type: "string", title: "Real Name", cache: true },
+	// "email": { type: "string", title: "EMail Address" },
+	// "image": { type: "file", title: "Profile Picture", optional: true },
+	"groups": {
+		type: "array",
+		title: "Groups",
+		optional: true,
+		items: { type:"reference", collection:"group", title:"Group" }
+	},
+	"auth": {
+		type: "select",
+		title: "Status",
+		options: { 0: "Anonymous", 1: "Normal", 2: "Administrator" },
+		default: 0
 	}
 };
 
 schema.group = {
-	type: "document",
-	keys: ["name","set"],
-	items: {
-		"name": { type: "string", title: "Group Name" },
-		"desc": { type: "string", title: "Description", optional: true },
-		"owner": { type: "reference", collection: "user", title: "Owner" },
-		"set": { type: "reference", collection:"set", title:"Set", unique: false }
-	}
+	"name": { type: "string", title: "Group Name", primary: true },
+	"desc": { type: "string", title: "Description", optional: true },
+	"owner": { type: "reference", collection: "user", title: "Owner" },
+	"set": { type: "reference", collection:"set", title:"Set", cache: true }
 };
 
 schema.set = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type:"string", title:"Set Name" },
-		"desc": { type:"string", title:"Description", optional:true },
-		"freedom": {
-			type: "select",
-			title: "Freedom",
-			options: {
-				0:"Users are not free to choose their groups within this set.",
-				1:"Users can freely change groups within this set."
-			},
-			default:0
+	"name": { type: "string", title: "Set Name", primary: true },
+	"desc": { type: "string", title: "Description", optional:true },
+	"freedom": {
+		type: "select",
+		title: "Freedom",
+		options: {
+			0:"Users are not free to choose their groups within this set.",
+			1:"Users can freely change groups within this set."
 		},
-		"exclusive": {
-			type: "select",
-			title: "Exclusive",
-			options: {
-				0:"Users can be part of multiple groups within this set.",
-				1:"Users can be part of only group within this set at a time."
-			},
-			default:1
+		default:0
+	},
+	"exclusive": {
+		type: "select",
+		title: "Exclusive",
+		options: {
+			0:"Users can be part of multiple groups within this set.",
+			1:"Users can be part of only group within this set at a time."
 		},
-		"create": {
-			type: "select",
-			title: "Create",
-			options: {
-				0:"Users can only choose existing groups within this set.",
-				1:"Users can create new groups as and when they wish within this set."
-			},
-			default:0
+		default:1
+	},
+	"create": {
+		type: "select",
+		title: "Create",
+		options: {
+			0:"Users can only choose existing groups within this set.",
+			1:"Users can create new groups as and when they wish within this set."
 		},
-		"limit": { type:"integer", title:"User Limit", default:0 }
-	}
+		default:0
+	},
+	"limit": { type:"integer", title:"User Limit", default:0 }
 };
 
 schema.language = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type: "string", title: "Language Name" },
-		"multiplier": { type: "float", title: "Time Limit Multiplier", optional: true }
-	}
+	"name": { type: "string", title: "Language Name", primary: true },
+	"multiplier": { type: "float", title: "Time Limit Multiplier", optional: true, default: 1 }
 };
 
 schema.judge = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type: "string", title: "Judge Name" },
-		"desc": { type: "string", title: "Description", optional: true },
-		"language": { type: "reference", collection: "language", title: "Language" },
-		"code": { type: "file", title: "Code" }
-	}
+	"name": { type: "string", title: "Judge Name", primary: true },
+	"desc": { type: "string", title: "Description", optional: true },
+	"language": { type: "reference", collection: "language", title: "Language" },
+	"code": { type: "file", title: "Code" }
 };
 
 schema.problem = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type:"string", title: "Problem Name" },
-		"tags": {
-			type:"array",
-			title: "Tags",
-			items: { type: "string", title:"Tag" },
-			optional: true
-		},
-		"languages": {
-			type: "array",
-			title: "Allowed Languages",
-			optional: true,
-			items: { type: "reference", title: "Language", collection: "language" }
-		},
-		"setter": { type:"string", title: "Problem Setter / Source", optional: true },
-		"statement": { type: "string", title: "Statement", long: true },
-		"tutorial": { type: "string", title: "Tutorial", long: true },
-		"files": {
-			type: "array",
-			title: "Associated Files",
-			optional: true,
-			items: { type: "file", title: "File" }
-		},
-		"tests": {
-			type: "array",
-			title: "Test Data",
+	"name": { type:"string", title: "Problem Name", primary: true },
+	"tags": {
+		type:"array",
+		title: "Tags",
+		items: { type: "string", title:"Tag" },
+		optional: true
+	},
+	"languages": {
+		type: "array",
+		title: "Allowed Languages",
+		optional: true,
+		items: { type: "reference", title: "Language", collection: "language" }
+	},
+	"setter": { type:"string", title: "Problem Setter / Source", optional: true },
+	"statement": { type: "string", title: "Statement", long: true },
+	"tutorial": { type: "string", title: "Tutorial", long: true },
+	"files": {
+		type: "array",
+		title: "Associated Files",
+		optional: true,
+		items: { type: "file", title: "File" }
+	},
+	"tests": {
+		type: "array",
+		title: "Test Data",
+		items: {
+			type:"object",
 			items: {
-				type:"object",
-				items: {
-					"input" : { type: "file", title: "Input" },
-					"output" : { type: "file", title: "Output" },
-					"timelimit" : { type: "float", title: "Time Limit" }
-				}
+				"input" : { type: "file", title: "Input" },
+				"output" : { type: "file", title: "Output" },
+				"timelimit" : { type: "float", title: "Time Limit" }
 			}
-		},
-		"judge": { type:"reference", collection: "judge", title: "Judge" }
-	}
+		}
+	},
+	"judge": { type:"reference", collection: "judge", title: "Judge" }
 };
 
 schema.contest = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type: "string", title: "Contest Name" },
-		"desc": { type: "string", title: "Description", optional: true },
-		"problems": {
-			type: "array",
-			optional: true,
-			title: "Problems",
+	"name": { type: "string", title: "Contest Name", primary: true },
+	"desc": { type: "string", title: "Description", optional: true },
+	"problems": {
+		type: "array",
+		optional: true,
+		title: "Problems",
+		items: {
+			type: "object",
 			items: {
-				type: "object",
-				items: {
-					"problem": { type: "reference", collection: "problem", title: "Problem" },
-					"points": { type: "integer", title: "Points" }
-				}
+				"problem": { type: "reference", collection: "problem", title: "Problem" },
+				"points": { type: "integer", title: "Points" }
 			}
-		},
-		"start": { type: "integer", title: "Start Time", datetime: true },
-		"end": { type: "integer", title: "End Time", datetime: true },
-		"groups": {
-			type: "array",
-			title: "Allowed Groups",
-			optional: true,
-			items: { type: "reference", collection: "group", title: "Group" }
-		},
-		"ranking": { type: "reference", collection: "set", title: "Ranking Scheme", optional: true }
-	}
+		}
+	},
+	"start": { type: "integer", datetime: true, title: "Start Time" },
+	"end": { type: "integer", datetime: true, title: "End Time" },
+	"groups": {
+		type: "array",
+		title: "Allowed Groups",
+		optional: true,
+		items: { type: "reference", collection: "group", title: "Group" }
+	},
+	"ranking": { type: "reference", collection: "set", title: "Ranking Scheme", optional: true }
 };
 
 var result = {
@@ -198,55 +185,47 @@ var result = {
 };
 
 schema.code = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type: "string", title: "Name" },
-		"problem": { type: "reference", collection: "problem", title: "Problem" },
-		"contest": { type: "reference", collection: "contest", title: "Contest" },
-		"user": { type: "reference", collection: "user", title: "User" },
-		"language": { type: "reference", collection: "language", title: "Language" },
-		"code": { type: "string", title: "Code", long: true },
-		"results": {
-			type: "array",
-			title: "Results",
-			optional: true,
+	"name": { type: "string", title: "Name", primary: true },
+	"problem": { type: "reference", collection: "problem", title: "Problem" },
+	"contest": { type: "reference", collection: "contest", title: "Contest", optional: true },
+	"user": { type: "reference", collection: "user", title: "User" },
+	"language": { type: "reference", collection: "language", title: "Language" },
+	"code": { type: "string", title: "Code", long: true },
+	"results": {
+		type: "array",
+		title: "Results",
+		optional: true,
+		items: {
+			type: "object",
 			items: {
-				type: "object",
-				items: {
-					"error": { type: "string", title: "Error Message", optional:true },
-					"time": { type: "float", title: "Run Time" },
-					"output": { type: "file", title: "Solution Output", optional: true },
-					"result": result
-				}
+				"error": { type: "string", title: "Error Message", optional:true },
+				"time": { type: "float", title: "Run Time" },
+				"output": { type: "file", title: "Solution Output", optional: true },
+				"result": result
 			}
-		},
-		"result": result, // cached, based on the details specified in results array
-		"access": {
-			type: "select",
-			title: "Access",
-			options: { 0: "Private", 1: "Protected", 2: "Public" },
-			default: "0"
-		},
-		"time": { type: "integer", title: "Submission Time", datetime: true }
-	}
+		}
+	},
+	"result": result, // cached, based on the details specified in results array
+	"access": {
+		type: "select",
+		title: "Access",
+		options: { "0": "Private", "1": "Protected", "2": "Public" },
+		default: "0"
+	},
+	"time": { type: "integer", datetime: true, title: "Submission Time" }
 };
 
 schema.comment = {
-	type: "document",
-	keys: ["name"],
-	items: {
-		"name": { type: "string", title: "Name" },
-		"location": { type: "string", title: "Location" },
-		"replyto": { type: "reference", collection: "comment", optional: true, title: "Reply To" },
-		"user": { type: "reference", collection: "user", title: "User" },
-		"time": { type: "integer", title: "Submission Time", datetime: true },
-		"message": { type: "string", title: "Message", long: true },
-		"access": {
-			type: "select",
-			title: "Access",
-			options: { 0: "Private", 1: "Public" },
-			default: 0
-		}
+	"name": { type: "string", title: "Name", primary: true },
+	"location": { type: "string", title: "Location"	},
+	"replyto": { type: "reference", collection: "comment", title: "Reply To", optional: true },
+	"user": { type: "reference", collection: "user", title: "User" },
+	"time": { type: "integer", title: "Submission Time", datetime: true },
+	"message": { type: "string", title: "Message", long: true },
+	"access": {
+		type: "select",
+		title: "Access",
+		options: { "0": "Private", "1": "Public" },
+		default: "0"
 	}
 };

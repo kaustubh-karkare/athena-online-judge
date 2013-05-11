@@ -1,7 +1,8 @@
 
 var pages = ["register","contests"];
 
-exports = new widget(function(path,callback){
+exports = new widget(function(data,callback){
+	var path = data.path;
 	var links = $("<ul class='nav nav-list'>"), last;
 	pages.forEach(function(name){
 		if(name==="register" && auth.level>0) name = "account";

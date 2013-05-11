@@ -1,6 +1,7 @@
 
 async.series([
 	function(cb){ mongodb.connect(cb); },
+	function(cb){ action.initialize(cb); },
 	function(cb){ action.integrity(cb); },
 	function(cb){ judge.start(cb); },
 	function(cb){ webserver.start(cb); }
