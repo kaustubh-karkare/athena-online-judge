@@ -21,7 +21,7 @@ String.prototype.addslashes = function(){ return this.replace(/([\\"'])/g, "\\$1
 var wrapcode = function(path){ return "(function(){var exports={};"+compress(fs.fileRead(path))+"return exports;})();\n"; };
 code.server += compress(fs.fileRead(__filename).replace(/#####[\s\S]*/,""))+"\n";
 
-var module_lister = function(location,process){
+var filelister = function(location,process){
 	var index = "index.txt", extension = ".js";
 	var modules = fs.fileRead(location+index);
 	if(modules!==undefined) modules = modules.split(/[\n\r]/g)
@@ -30,25 +30,19 @@ var module_lister = function(location,process){
 		.map(function(name){ return name+extension; });
 	else modules = fs.readdirSync(location);
 	for(var i=0;i<modules.length;++i)
-		try { process(location+modules[i]); } catch(e){ console.log(e.stack); }
+		try {
+			var path = location+modules[i], name = path.match(/([^\/]+)\.[^\.]+$/,"")[1];
+			process(name, path);
+		} catch(e){ console.log(e.stack); }
 };
 
-list.client.push("template");
-code.client+="var template = {};\n";
-module_lister("client/template/",function(path){
-	var name = path.match(/([^\/]+)\.[^\.]+$/,"")[1];
-	code.client+="template[\""+name.addslashes()+"\"] = \""+fs.fileRead(path).replace(/\r?\n\s*/g,"").addslashes()+"\";\n";
-});
-
 var module_loader = function(target){
-	module_lister(target+"/",function(path){
-		var name = path.match(/([^\/]+)\.[^\.]+$/,"")[1];
+	filelister(target+(target==="shared"?"/":"/core/"),function(name,path){
 		list[target].push(name);
 		if(fs.fileExists(path)) code[target]+="var "+name+"="+wrapcode(path);
 		else code[target]+="var "+name+"={};\n"
 		path = target+"/"+name+"/";
-		if(fs.dirExists(path)) module_lister(path,function(path2){
-			var name2 = path2.match(/([^\/]+)\.[^\.]+$/,"")[1];
+		if(fs.dirExists(path)) filelister(path,function(name2,path2){
 			code[target]+=name+"[\""+name2.addslashes()+"\"]="+wrapcode(path2);
 		});
 	});

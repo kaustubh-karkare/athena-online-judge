@@ -112,28 +112,32 @@ var datatypes = {
 					$(this).parent().parent().remove();
 					first.remove(x[0]); order.remove(i);
 					return false;
-				}).parent().parent().attr("data-order",i)[0];
+				}).parent().parent().attr("data-order",i).css({"border":"1px solid #eee","border-radius":"4px","margin":"10px","padding-top":"10px"})[0];
 		};
 		// sequentially generate the element inputs and then wrap them
 		for(var i=0;i<obj.length;++i) second.push(generate_recursive(name+"."+i,spec.items,obj[i],save));
 		second = second.map(function(x,i){ return element(x,i); });
 		var _i = first.length, add = spec.add?spec.add:"Add Array Element";
 		// enable sorting of elements
-		var arraytop = $("<div style='border:1px solid #eee;border-radius:4px;padding:10px 10px 0px 0px;'><div></div><div></div></div>");
-		arraytop.children(":first-child").append(second).sortable({"handle":".icon-move","stop":function(){
-			var order2 = [], first2 = [];
-			arraytop.children(":first-child").children().each(function(i,e){
-				order2.push(parseInt($(e).attr("data-order")));
-			});
-			if(order.join(",")!==order2.join(",")) order = order2;
-		} });
+		var arraytop = $("<div style='border:1px solid #eee;border-radius:4px;'><div></div><div></div></div>");
+		var settings = {
+			"handle":".icon-move",
+			"stop":function(){
+				var order2 = [], first2 = [];
+				arraytop.children(":first-child").children().each(function(i,e){
+					order2.push(parseInt($(e).attr("data-order")));
+				});
+				if(order.join(",")!==order2.join(",")) order = order2;
+			}
+		};
+		arraytop.children(":first-child").append(second).sortable(settings);
 		// add button to add additional array items
 		arraytop.children(":last-child").append(controlgroup(" ",
 			$("<input type='button' class='btn' value='"+add+"' style='width:220px;'>").click(function(){
 				var i = _i++;
 				var x = generate_recursive(name+"."+i,spec.items,undefined,save);
 				var y = element(x,i);
-				arraytop.children(":last-child").before(y);
+				arraytop.children(":first-child").append(y).sortable("refresh");
 			})[0]
 		));
 		// wrap the list of array elements in a control group
@@ -178,7 +182,7 @@ exports = function(args){
 	if(typeof(args.submit)!=="function") args.submit = misc.nop;
 	var submit = function(error,result){
 		if(error){
-			console.log(error);
+			display.error(error);
 		} else {
 			args.submit(result);
 			form.remove(); // self-destruct now that the purpose of this form has been served

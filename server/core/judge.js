@@ -104,10 +104,17 @@ var process = function(){
 			var tests = []; code.results = [];
 			problem.tests.forEach(function(test){
 				tests.push(function(cb2){
+					var fi, fo; // gfs actual input & output files
 					async.series([
-						// create the IO files (assuming the judge needs them)
-						function(cb3){ filesystem.extract(test.input.id,env+"input.txt",cb3); },
-						function(cb3){ filesystem.extract(test.output.id,env+"output.txt",cb3); },
+						// create the expected and actual IO files (assuming judge needs them)
+						function(cb3){
+							async.parallel([
+								function(cb4){ filesystem.extract(test.input.id,env+"input.txt",cb4); },
+								function(cb4){ filesystem.extract(test.output.id,env+"output.txt",cb4); }
+								//,function(cb4){ filesystem.open(null,"w",function(e,r){ if(!e) fi=r.id; cb4(e); }); }
+								//,function(cb4){ filesystem.open(null,"w",function(e,r){ if(!e) fo=r.id; cb4(e); }); }
+							],cb3);
+						},
 						// spawn the processes, interlink their IO streams & track evaluation
 						function(cb3){
 							var j = spawn(judge.execute[0],judge.execute[1]);

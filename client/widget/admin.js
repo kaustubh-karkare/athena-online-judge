@@ -29,7 +29,7 @@ exports = new widget(function(data,callback){
 				legend(path[2],path[1],path[3]),
 				plugin.form({
 					collection : path[1],
-					data : result[1],
+					data : result[2],
 					submit : function(data){
 						if(path[2]==="new" || (data!==null && data[key]!==path[3]))
 							location.hash = path.slice(0,2).concat("edit",data[key].urlencode()).join("/");

@@ -16,7 +16,7 @@ app.get(/^\/$/,function(req,res){
 	var html = ["<!doctype html><html><head>"];
 	html.push("<title>Athena Online Judge</title>");
 	html.push("<script>var unique = "+(++unique)+";</script>");
-	html.push(fs.fileRead("./client/template/page-headers.html"));
+	html.push(fs.readFileSync("./static/headers.html").toString());
 	html.push("<script src='client.js'></script>");
 	html.push("</head><body onLoad='main()'></body></html>");
 	res.send(html.join("\n"));

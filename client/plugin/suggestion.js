@@ -111,7 +111,7 @@ exports = function(args){
 		if(query["$exclude"].length===0) delete query["$exclude"];
 		// invoke rpc
 		rpc("database.suggest",query,function(error,result){
-			if(error){ console.log("change",error); return; }
+			if(error){ display.error(error); return; }
 			// ensuring filter
 			var re_val = RegExp(RegExp.quote(newval),"i"), exclude = ("$exclude" in query?query["$exclude"]:[]);
 			var list = result.order.map(function(x){ return result.data[x]; })
@@ -154,7 +154,6 @@ exports = function(args){
 		"content":"<div id='suggested'></div><div id='divider'>Selected Item(s)</div><div id='selected'></div>",
 		"html":true
 	}).keyup(function(event){
-		// console.log(event.keyCode);
 		if(event.keyCode==undefined) event.keyCode = 13; // default is enter, for when click is used to trigger this
 		if(event.keyCode===38 || event.keyCode===40) move(event.keyCode===38?1:0);
 		else if(event.keyCode===13) transfer();

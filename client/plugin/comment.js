@@ -8,7 +8,7 @@ var input = function(interface,location,replyto){
 		$("<textarea>").keyup(function(event){
 			if(event.keyCode!==13 || event.shiftKey || this.value.trim().length===0) return;
 			rpc("comment.insert",{"replyto":replyto===null?null:{"_id":replyto},"location":location,"message":this.value},function(e){
-				if(!e) interface.reload(); else console.log(e);
+				if(!e) interface.reload(); else display.error(e);
 			});
 			event.stopPropagation()
 		}).autosize()
@@ -17,7 +17,6 @@ var input = function(interface,location,replyto){
 
 var format = function(interface,comment){
 	var r1, r2;
-	console.log(comment);
 	var r3 = $("<div style='"+(comment.replyto===null?"padding-bottom:4px; border-bottom:1px solid #ddd; margin-bottom:4px;":"margin-left: "+replyoffset+"px;")+"'>").append(
 		$("<div class='comment-body'>").append([
 			$("<a style='font-weight:bold;' href='"+["user",comment.user.username].hash()+"'>"+comment.user.realname.htmlentities()+"</a>"),
@@ -30,12 +29,12 @@ var format = function(interface,comment){
 		]).concat( auth.level<config.adminlevel || comment.replyto!==null ? [] : [
 			" &middot; ",
 			$("<a>"+schema.comment.items.access.options[comment.access]+"</a>").click(function(){
-				rpc("comment.access",{"_id":comment._id,"access":comment.access==="0"?"1":"0"},function(e){ if(!e) interface.reload(); else console.log(e); });
+				rpc("comment.access",{"_id":comment._id,"access":comment.access==="0"?"1":"0"},function(e){ if(!e) interface.reload(); else display.error(e); });
 			})
 		]).concat( auth.level<config.adminlevel && (auth.user===null || auth.user._id!==comment.user._id ) ? [] : [
 			" &middot; ",
 			$("<a>Delete</a>").click(function(){
-				if(confirm("Are you sure you want to delete this comment?")) rpc("comment.delete",{"_id":comment._id},function(e){ if(!e) interface.reload(); else console.log(e); });
+				if(confirm("Are you sure you want to delete this comment?")) rpc("comment.delete",{"_id":comment._id},function(e){ if(!e) interface.reload(); else display.error(e); });
 			})
 		])),
 		$("<div>").append(

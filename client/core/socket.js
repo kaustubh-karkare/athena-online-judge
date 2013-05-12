@@ -10,6 +10,12 @@ socket.emit = function(){
 	if(link===null) delivery.emit("socket",args);
 	else link.emit.apply(link,args);
 };
+socket.broadcast = function(name){
+	if(typeof(name)!=="string") return false;
+	var args = Array.prototype.slice.apply(arguments);
+	socket.$emit.apply(socket,args);
+	socket.emit.apply(socket,args);
+};
 
 leader.on("start",function(){
 	link = io.connect();
@@ -25,7 +31,7 @@ leader.on("start",function(){
 		link.on(socketio.event_global_presend,function(){
 			if(log) console.log("[socket] send",arguments);
 		});
-		socket.$emit("connect");
+		socket.broadcast("connect");
 	});
 });
 

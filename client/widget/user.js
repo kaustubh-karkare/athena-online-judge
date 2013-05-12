@@ -72,10 +72,9 @@ exports = new widget(function(data,callback){
 				data.groups = misc.array2object(keys,result.set.filter(function(set){
 					return set.freedom==="1" || auth.level>=config.adminlevel;
 				}).map(function(set){ keys.push(set._id); return set.groups(); }));
-				console.log(JSON.stringify(data));
 				rpc("user."+(reg?"create":"modify"),data,function(e,r){
 					if(!e && !reg && r._id===result.user._id) itc.broadcast("auth",r);
-					if(e) console.log(e);
+					if(e) display.error(e);
 					else if(!reg && r.username===result.user.username) exports.reload();
 					else location.hash = ["user",r.username].concat(reg?[]:["edit"]).hash();
 				});

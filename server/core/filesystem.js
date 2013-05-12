@@ -40,14 +40,15 @@ filesystem.delete = function(id,callback){
 	]), function(e){ callback(e); });
 };
 filesystem.open = function(id,mode,callback){
-	id = String(id);
+	if(id===null) id = String(mongodb.ObjectID());
+	else id = String(id);
 	if(typeof(callback)!=="function") callback = misc.nop;
 	openfiles[id] = {"file": new mongodb.GridStore(mongodb, id, id, mode, {})};
 	async.waterfall(mongodb.ready().concat([
 		function(cb){ openfiles[id].file.open(cb); }
 	]), function(e,gs){
 		timeout(id);
-		callback(e,e?undefined:{"length":gs.length});
+		callback(e,e?undefined:{"id":id,"length":gs.length});
 	});
 };
 // not using mongodb.ready in read/write/close because open already has it
@@ -123,6 +124,5 @@ filesystem.extract = function(id,path,callback){
 };
 
 filesystem.insert = function(id,path,callback){
-	if(id===null) id = String(mongodb.ObjectID());
 	transfer(false,id,path,function(e){ callback(e,e?undefined:id); });
 };

@@ -44,7 +44,7 @@ exports = new widget(function(data,callback){
 				var main = $("<div style='"+pstyle+"'>"+html+"</div>");
 				main.find("a,img").each(function(i,e){
 					url = (e.nodeName==="A"?e.href:e.src).match(/\/([^\/]+)$/,""); url = url?url[1]:url;
-					var f = result.problem.files.filter(function(f){ console.log(f.name,url); return f.name===url; });
+					var f = result.problem.files.filter(function(f){ return f.name===url; });
 					if(f.length) url = "download?id="+f[0].id+"&name="+url; else return;
 					if(e.nodeName==="A"){ e.href = url; e.target='new'; } else e.src = url;
 				});

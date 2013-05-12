@@ -35,7 +35,7 @@ exports = function(args){
 		filter.$page.number = page;
 		// the specified rpc must return directly from database.page or at least in that format
 		rpc(filter.$collection ? "database.pagination" : args.rpc, filter, function(error,result){
-			if(error){ console.log(error); return; }
+			if(error){ display.error(error); return; }
 			var tr = table.empty().append("<tr>").children().last();
 			args.render(null,function(e,r){
 				if(!e) tr.append(r.map(function(x){ return $("<th>").append(x); }));

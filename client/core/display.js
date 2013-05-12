@@ -1,6 +1,6 @@
 
-var base="#layout-base-";
 var skip=false, history = [""];
+var left, flash = $(), main, right;
 
 var display = exports = {
 	duration: 500,
@@ -9,8 +9,21 @@ var display = exports = {
 
 display.top = function(){ $("body").animate({"scrollTop":0},display.duration); };
 display.bottom = function(){ $("body").animate({"scrollTop":$(document).height()},display.duration); };
-display.success = function(msg){ console.log("display.success",msg); };
-display.error = function(msg){ console.log("display.error",msg); };
+
+var flashnow = function(divclass,msg){
+	var x = $("<div class='"+divclass+"' style='display:none;cursor:pointer;' title='Click to dismiss.'>").html(msg);
+	var y = function(){ x.slideUp(250,function(){ x.remove(); }); };
+	x.click(y);
+	setTimeout(y,5000);
+	flash.append(x);
+	display.top();
+	x.slideDown(250);
+	var z = flash.children();
+	z = z.not(z.slice(-3));
+	z.slideUp(250,function(){ z.remove(); });
+};
+display.success = function(msg){ flashnow("alert alert-success",msg); };
+display.error = function(msg){ flashnow("alert alert-error",msg); };
 
 var sidebox = "links,login".split(",");
 var pages = Object.keys(widget).remove(sidebox);
@@ -28,8 +41,15 @@ $(window).bind('hashchange',hashchange);
 auth.change(function(){ widget.links.reload(); });
 
 display.load = function(){
-	$(document.body).empty().html(template["layout-base"]);
-	var left = $(base+"left"), flash = $(base+"flash"), main = $(base+"main"), right = $(base+"right");
+	$(document.body).empty().append(["<br>",
+		$("<div class='container' style='width:1100px;'>").append([
+			$("<div class='row'>").append([
+				left = $("<div class='span2'></div>"),
+				$("<div class='span10'></div>").append( flash = $("<div>"), main = $("<div>") ),
+				right = $("<div class='span2'></div>"),
+			])
+		])
+	]);
 	pages.forEach(function(name){ widget[name].bind(main); });
 	widget.links.bind(left);
 	widget.login.bind(right).show(null,"fade");
