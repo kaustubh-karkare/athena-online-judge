@@ -159,7 +159,7 @@ action.update = function(socket,data,callback){
 			socket.data.files.remove(save2.files);
 			// delete all files that are no longer referred to by the object
 			async.parallel(save1.files.remove(save2.files).map(function(fid){
-				return function(cb2){ filesystem.delete(fid,cb2); };
+				return function(cb2){ gridfs.delete(fid,cb2); };
 			}),cb);
 		},
 		// finally, perform the actual update operation
@@ -189,7 +189,7 @@ action.delete = function(socket,data,callback){
 		// set the flag to indicate that a delete marker has been set and in case of failure must be unset. additionally, get list of files & forward-references
 		function(cb){ flag = true; specification.match.complete(collection,schema[collection],item1,function(e,i,s){ if(!e){ item1=i; save1=s; } cb(e); }); },
 		// delete all the attached files
-		function(cb){ async.parallel(save1.files.map(function(f){ return function(cb2){ filesystem.delete(f.id,cb2); }; }),cb); },
+		function(cb){ async.parallel(save1.files.map(function(f){ return function(cb2){ gridfs.delete(f.id,cb2); }; }),cb); },
 		// delete all rows that forward-reference this one (ie - have a back-reference here)
 		function(cb){
 			var refs = [];
@@ -229,10 +229,10 @@ action.integrity = function(callback){
 		function(cb){
 			async.series([
 				// 1 : Create a dummy file for broken file references.
-				function(cb2){ filesystem.open(config.dummy.file.id,"w",cb2); },
-				function(cb2){ filesystem.close(config.dummy.file.id,cb2); },
+				function(cb2){ gridfs.open(config.dummy.file.id,"w",cb2); },
+				function(cb2){ gridfs.close(config.dummy.file.id,cb2); },
 				// 4.4 : Get list of all files in database
-				function(cb2){ filesystem.list(function(e,r){ if(!e) files=r; cb2(e); }) }
+				function(cb2){ gridfs.list(function(e,r){ if(!e) files=r; cb2(e); }) }
 			],function(e){ cb(e); });
 		},
 		function(cb){
@@ -291,7 +291,7 @@ action.integrity = function(callback){
 		function(cb){
 			// 4.6 Delete all unreferenced files.
 			async.parallel(files.map(function(f){
-				return function(cb2){ filesystem.delete(f.id,cb2); };
+				return function(cb2){ gridfs.delete(f.id,cb2); };
 			}),cb);
 		}
 	],function(e){ callback(e); });

@@ -5,7 +5,12 @@ misc.echo = function(){ console.log(arguments); };
 misc.echo2 = function(){ console.log(JSON.stringify(arguments)); };
 misc.timestamp = function(){ return (new Date().getTime()); };
 
-
+misc.hrsize = function(b){ // human readable size
+	if(b<1024) return Math.ceil(b)+ "B"; b/=1024;
+	if(b<1024) return Math.ceil(b)+"KB"; b/=1024;
+	if(b<1024) return Math.ceil(b)+"MB"; b/=1024;
+	return Math.ceil(b)+"GB";
+};
 
 misc.deferred = function(){
 	this.success = [];
@@ -87,13 +92,6 @@ misc.array2object = function(array1,array2){
 	var result = {}, len = Math.min(array1.length,array2.length);
 	for(i=0;i<len;++i) if(typeof(array1[i])!="object" && array1[i]!==undefined) result[array1[i]] = array2[i];
 	return result;
-};
-
-misc.deepcopy = function(x){
-	var y = x;
-    if(Array.isArray(x)){ y=[]; for(var i=0;i<x.length;++i) y[i]=arguments.callee(x[i]); }
-    if(typeof(x)==="object" && x!==null){ y={}; for(var i in x) y[i]=arguments.callee(x[i]); }
-    return y;
 };
 
 misc.attrmap = function(x){

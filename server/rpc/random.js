@@ -12,7 +12,7 @@ rpc.on("problem.display",function(socket,data,callback){ database.get("problem",
 
 rpc.on("problem.update",function(socket,data,callback){
 	async.series([
-		function(cb){ cb(socket.data.auth>=2?null:"unauthorized"); },
+		function(cb){ cb(socket.data.auth>=config.adminlevel?null:"unauthorized"); },
 		function(cb){ cb(Array.isArray(data) && data.length===3 && !isNaN(parseInt(data[0])) && (data[1]==="statement"||data[1]==="tutorial") && typeof(data[2])==="string" ? null : "corrupt"); },
 		function(cb){ var set={};set[data[1]]=data[2]; database.update("problem",{_id:parseInt(data[0])},{"$set":set},cb); }
 	],function(e){ callback(e); });

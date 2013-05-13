@@ -64,7 +64,7 @@ var datatypes = {
 		obj.id = String(obj.id).toLowerCase(); obj.name = String(obj.name); obj.size = parseInt(obj.size);
 		if(obj.id.match(/^[0-9a-f]{24}$/)===null || obj.name==="" || isNaN(obj.size) || obj.size<0)
 			{ callback("corrupt:"+name); return; }
-		filesystem.exists(obj.id,function(error,result){
+		gridfs.exists(obj.id,function(error,result){
 			if(error) callback(error);
 			else if(!result){
 				if(save.type==="repair") callback(null,config.dummy.file);

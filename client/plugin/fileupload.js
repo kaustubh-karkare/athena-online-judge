@@ -1,17 +1,4 @@
 
-/*
-Options that would be nice : ability to deselect specific files.
-*/
-
-var blocksize = 100*1024; // 100KB
-
-var hrsize = function(b){ // human readable size
-	if(b<1024) return Math.ceil(b)+ "B"; b/=1024;
-	if(b<1024) return Math.ceil(b)+"KB"; b/=1024;
-	if(b<1024) return Math.ceil(b)+"MB"; b/=1024;
-	return Math.ceil(b)+"GB";
-};
-
 exports = function(args){
 	if(typeof(args)!=="object") return false;
 	args.multiselect = !!args.multiselect;
@@ -20,12 +7,12 @@ exports = function(args){
 	// Looks
 
 	var top = $("<div>");
-	var input = top.append("<input type='file' style='display:none;'>").children(":first-child");
+	var input = $("<input type='file' style='display:none;'>").prependTo(top);
 	if(args.multiselect) input.attr("multiple","multiple");
-	var pbar1 = top.append("<div style='position:absolute;z-index:-1;'></div>").children(":last-child");
-	var pbar2 = pbar1.append("<div style='background:#eee;width:0%;height:30px;'></div>").children(":last-child");
-	var display = top.append("<div class='input-append' style='display:inline-block;'>").children(":last-child");
-	var output = top.append("<input type='hidden'>").children(":last-child");
+	var pbar1 = $("<div style='position:absolute;z-index:-1;'></div>").appendTo(top);
+	var pbar2 = $("<div style='background:#eee;width:0%;height:30px;'></div>").appendTo(pbar1);
+	var display = $("<div class='input-append' style='display:inline-block;'>").appendTo(top);
+	var output = $("<input type='hidden'>").appendTo(top);
 	display.append("<input type='text' style='cursor:text;background:transparent;' readonly='readonly' placeholder='Select File ...'>");
 	var text = display.children("input");
 	display.append("<span class='btn' title='Download File"+s+"'><i class='icon-download'></i></span>");
@@ -58,7 +45,7 @@ exports = function(args){
 
 	var text_display = function(files){
 		text.val($.map(files,function(f){
-			return "\""+f.name+"\" ("+hrsize(f.size)+")";
+			return "\""+f.name+"\" ("+misc.hrsize(f.size)+")";
 		}).join(", "));
 	};
 
@@ -69,19 +56,20 @@ exports = function(args){
 	var upload_actual = function(file,progress,callback){
 		progress(0,file.size);
 		rpc("file.upload.start",{"size":file.size},function(error,id){
-			var length=0, fileReader = new FileReader(); offset = 0;
-			var send = function(error){
-				if(running<=0){ rpc("file.upload.cancel",{"id":id},function(e){ callback("cancelled"); }); return; }
-				if(error){ callback(error); return; }
-				offset += length; length = Math.min(file.size-offset,blocksize);
-				progress(offset,file.size);
-				if(length==0) rpc("file.upload.end",{"id":id},function(e){
+			filesystem.stream(file,function(offset,data,next){
+				if(running<=0) next("cancel");
+				else rpc("file.upload.continue",{"id":id,"offset":offset,"block":data},function(e){
+					if(!e) progress(offset,file.size); next(e);
+				});
+			},function(error){
+				if(error){
+					if(error==="cancel") rpc("file.upload.cancel",{"id":id},function(e){ callback(error); });
+					else callback(error);
+				} else rpc("file.upload.end",{"id":id},function(e){
+					if(!e) progress(file.size,file.size);
 					callback(e,e?undefined:{"id":id,"name":file.name,"size":file.size});
-				}); else {
-					fileReader.onload = function(event){ rpc("file.upload.continue",{"id":id,"offset":offset,"block":event.target.result},send); };
-					fileReader.readAsBinaryString(file.slice(offset,offset+length));
-				}
-			}; send(null);
+				});
+			});
 		});
 	};
 

@@ -1,5 +1,4 @@
 
-var authlevel = 2; // for editting statement/tutorial
 var tabs = ["statement","tutorial","submissions"];
 var pstyle = "text-align:justify; padding:0px 10px;";
 
@@ -48,7 +47,7 @@ exports = new widget(function(data,callback){
 					if(f.length) url = "download?id="+f[0].id+"&name="+url; else return;
 					if(e.nodeName==="A"){ e.href = url; e.target='new'; } else e.src = url;
 				});
-				if(auth.level>=authlevel) main.append($("<div style='text-align:center;margin-top:20px;'>").append([
+				if(auth.level>=config.adminlevel) main.append($("<div style='text-align:center;margin-top:20px;'>").append([
 					"<a href='"+path.slice(0,5).concat("edit").hash()+"' class='btn'>Edit "+path[4].ucwords()+"</a>"
 				]));
 				main.append("<br><br><legend>Comments/Clarifications</legend>");
@@ -81,11 +80,12 @@ exports = new widget(function(data,callback){
 					$(lang.node).blur(function(){ var v = lang.value(); editor.setOption("mode",CodeMirror.loadMode(v?v.name:v)); });
 				},0);
 				var upload = $("<input type='file'>").change(function(){
-					if(this.files.length===0) return;
-					var file = this.files[0], fileReader = new FileReader();
-					if(file.size>100*1024){ display.error("file.too-large"); return; }
-					fileReader.onload = function(event){ if(editor) editor.setValue(event.target.result); else textarea[0].value = event.target.result; };
-					fileReader.readAsBinaryString(file);
+					if(this.files.length>0) filesystem.load(this.files[0],function(error,data){
+						if(!error){
+							if(editor) editor.setValue(event.target.result);
+							else textarea[0].value = event.target.result;
+						} else display.error(error);
+					});
 					return false;
 				});
 				var uploadbtn = $("<span class='btn pull-right' style='width:100px;'>Load from File</span>");

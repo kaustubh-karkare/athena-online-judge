@@ -10,19 +10,25 @@ exports = new widget(function(data,callback){
 
 	if(reg) var head = $("<legend>Create New Account</legend>");
 	else var head = $("<legend>User Details : "+data.path[1].htmlentities()+"</legend>");
+	var headbtn = $("<span class='pull-right'>").appendTo(head);
 
-	var edit = auth.level>=config.adminlevel || (auth.user && auth.user.username===data.path[1]);
-	var edit2 = reg || edit&&data.path[2]==="edit";
-	if((!edit && data.path[2]==="edit") || [undefined,"edit"].indexOf(data.path[2])===-1)
+	var btn_subm = "<a class='btn' href='"+data.path.slice(0,2).concat("submissions").hash()+"'>Code Submissions</a> ";
+	var btn_view = "<a class='btn' href='"+data.path.slice(0,2).hash()+"'>View User Details</a>";
+	var btn_edit = "<a class='btn' href='"+data.path.slice(0,2).concat("edit").hash()+"'>Edit User Details</a>";
+
+	var edit = auth.level>=config.adminlevel || (auth.user && auth.user.username===data.path[1]); // authorized to edit
+	var edit2 = edit && data.path[2]==="edit"; // desire to edit + authorized
+	if(!reg && !edit2 && [undefined,"submissions"].indexOf(data.path[2])===-1)
 		{ callback("redirect",data.path.slice(0,2).hash()); return; }
 	var that = this, reload = function(){ that.reload(); };
 	async.parallel({
 		"user": function(cb){ if(!reg) rpc("user.display",{"username":data.path[1],"edit":edit2},cb); else cb(null); },
-		"set": function(cb){ if(edit2) rpc("set.list",null,cb); else cb(null); }
+		"set": function(cb){ if(reg || edit2) rpc("set.list",null,cb); else cb(null); }
 	}, function(error,result){
 		if(error){ callback(error); return; }
-		if(edit2){
-			head.append("<span class='pull-right'><a class='btn' href='"+data.path.slice(0,2).hash()+"'>View User Details</a></span>");
+
+		if(reg || edit2){
+			headbtn.append(btn_subm,btn_view);
 			var form = $("<form>");
 			var left = form.append("<div class='half'>").children().last();
 			var table1 = left.append("<table class='table table-striped'>").children().last();
@@ -81,8 +87,27 @@ exports = new widget(function(data,callback){
 				return false;
 			});
 			callback(null,$("<div>").append([head,form])[0]);
+
+		} else if(data.path[2]==="submissions"){
+			headbtn.append(btn_view);
+			var main = plugin.pagination({
+				"rpc":"code.list",
+				"page":{"size":25},
+				"data":{"user":result.user._id},
+				"render":function(item,cb){ cb(null,item===null?["Code ID","Contest","Problem","Language","Result"]:
+					[
+						item._id,
+						"<a href='"+["contest",item.contest.name].hash()+"'>"+item.contest.name.htmlentities()+"</a>",
+						"<a href='"+["contest",item.contest.name,"problem",item.problem.name].hash()+"'>"+item.problem.name.htmlentities()+"</a>",
+						item.language.name.htmlentities(),
+						schema.code.result.options[item.result]
+					]); },
+				"click": function(item){ location.hash = path.slice(0,4).concat("code",item._id).hash(); }
+			}).node;
+			callback(null,$("<div>").append([head,main])[0]);
 		} else {
-			if(edit) head.append("<span class='pull-right'><a class='btn' href='"+data.path.slice(0,2).concat("edit").hash()+"'>Edit User Details</a></span>");
+			headbtn.append(btn_subm);
+			if(edit) headbtn.append(btn_edit);
 			var left = $("<div class='half'>");
 			var table1 = left.append("<table class='table table-striped'>").children().last();
 			table1.append("<tr><th>Field</th><th>Value</th></tr>");

@@ -103,7 +103,7 @@ exports = function(args){
 		if(newval===oldval) return; else oldval = newval;
 		var aid = $(popover).find("a.active").attr("data-id");
 		// build query
-		var query = misc.deepcopy(args.filter);
+		var query = $.extend(true,{},args.filter);
 		query["$exclude"] = [];
 		query["$collection"] = args.collection;
 		if(newval.length>0) query[key] = newval;

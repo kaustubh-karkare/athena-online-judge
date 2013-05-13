@@ -55,11 +55,24 @@ var datatypes = {
 		return [function(cb){ cb(null,parseFloat(input[0].value)); }, controlgroup(spec.title?spec.title:name,input[0])];
 	},
 	"string" : function(name,spec,obj,save){
-		if(spec.long) var input = $("<textarea></textarea>");
-		else var input = $("<input type='"+(spec.password?"password":"text")+"'>");
+		if(spec.long){
+			var input = $("<textarea>");
+			var upload = $("<input type='file' style='display:none;'>").change(function(){
+				if(this.files.length>0) filesystem.load(this.files[0],function(error,data){
+					if(!error) input[0].value = event.target.result;
+					else display.error(error);
+				});
+			});
+			var load = $("<input type='button' class='btn' style='width:220px;margin-top:4px;' value='Load from File'>").click(function(){ upload.click(); });
+			var display = [input,upload,"<br>",load];
+		}
+		else {
+			var input = $("<input type='"+(spec.password?"password":"text")+"'>");
+			var display = input[0];
+		}
 		if(obj!==undefined) input.val(String(obj));
 		else if(spec.default!==undefined) input.val(String(spec.default));
-		return [function(cb){ cb((input[0].value.length||spec.optional)?null:"empty:"+name,input[0].value); },controlgroup(spec.title?spec.title:name,input[0])];
+		return [function(cb){ cb((input[0].value.length||spec.optional)?null:"empty:"+name,input[0].value); }, controlgroup(spec.title?spec.title:name, display ) ];
 	},
 	"select" : function(name,spec,obj,save){
 		var select = plugin.selection({"initial":(obj===undefined?spec.default:obj),"options":spec.options});

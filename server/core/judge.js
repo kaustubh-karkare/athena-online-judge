@@ -90,7 +90,7 @@ var process = function(){
 		function(cb){
 			var id = judge.code.id;
 			judge = languages[judge.language.name](env+"judge");
-			filesystem.extract(id,judge.source,cb);
+			gridfs.extract(id,judge.source,cb);
 		},
 		function(cb){
 			if("compile" in judge)
@@ -109,10 +109,10 @@ var process = function(){
 						// create the expected and actual IO files (assuming judge needs them)
 						function(cb3){
 							async.parallel([
-								function(cb4){ filesystem.extract(test.input.id,env+"input.txt",cb4); },
-								function(cb4){ filesystem.extract(test.output.id,env+"output.txt",cb4); }
-								//,function(cb4){ filesystem.open(null,"w",function(e,r){ if(!e) fi=r.id; cb4(e); }); }
-								//,function(cb4){ filesystem.open(null,"w",function(e,r){ if(!e) fo=r.id; cb4(e); }); }
+								function(cb4){ gridfs.extract(test.input.id,env+"input.txt",cb4); },
+								function(cb4){ gridfs.extract(test.output.id,env+"output.txt",cb4); }
+								//,function(cb4){ gridfs.open(null,"w",function(e,r){ if(!e) fi=r.id; cb4(e); }); }
+								//,function(cb4){ gridfs.open(null,"w",function(e,r){ if(!e) fo=r.id; cb4(e); }); }
 							],cb3);
 						},
 						// spawn the processes, interlink their IO streams & track evaluation
@@ -126,7 +126,7 @@ var process = function(){
 								var endtime = new Date().valueOf();
 								j.kill("SIGKILL"); s.kill("SIGKILL");
 								clearTimeout(timer);
-								if(!(x in schema.code.items.result.options)){ cb3("unknown-result"); return; }
+								if(!(x in schema.code.result.options)){ cb3("unknown-result"); return; }
 								code.results.push({
 									"error":"",
 									"time":(endtime-starttime)/1000,

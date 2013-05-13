@@ -28,7 +28,7 @@ var format = function(interface,comment){
 			r1 = $("<a class='reply'>Reply</a>")
 		]).concat( auth.level<config.adminlevel || comment.replyto!==null ? [] : [
 			" &middot; ",
-			$("<a>"+schema.comment.items.access.options[comment.access]+"</a>").click(function(){
+			$("<a>"+schema.comment.access.options[comment.access]+"</a>").click(function(){
 				rpc("comment.access",{"_id":comment._id,"access":comment.access==="0"?"1":"0"},function(e){ if(!e) interface.reload(); else display.error(e); });
 			})
 		]).concat( auth.level<config.adminlevel && (auth.user===null || auth.user._id!==comment.user._id ) ? [] : [

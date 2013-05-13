@@ -2,10 +2,10 @@
 # shared files to be included before the following
 mongodb
 database # mongodb
-filesystem # mongodb
+gridfs # mongodb
 specification
-action # database, filesystem, specification
-rpc # database, filesystem, specification, action
+action # database, gridfs, specification
+rpc # database, gridfs, specification, action
 webserver # rpc
 judge
 main

@@ -1,7 +1,7 @@
 
 exports = function(args){
 	if(typeof(args)!=="object") return false;
-	else args = misc.deepcopy(args);
+	else args = $.extend(true,{},args);
 	var filter = {};
 
 	// either args.rpc needs to be specified or args.collection
@@ -41,7 +41,9 @@ exports = function(args){
 				if(!e) tr.append(r.map(function(x){ return $("<th>").append(x); }));
 			});
 			result.order.forEach(function(i){
-				var tr = table.append("<tr>").children().last().click(function(){ args.click(result.data[i]); });
+				var tr = table.append("<tr>").children().last().click(function(event){
+					if($(event.target).closest("a").length===0) args.click(result.data[i]);
+				});
 				args.render(result.data[i],function(e,r){
 					if(!e) tr.append(r.map(function(x){ return $("<td>").append(x); }));
 				});
