@@ -41,7 +41,7 @@ schema.user = {
 		type: "array",
 		title: "Groups",
 		optional: true,
-		items: { type:"reference", collection:"group", title:"Group" }
+		items: { type: "reference", collection: "group", title: "Group" }
 	},
 	"auth": {
 		type: "select",

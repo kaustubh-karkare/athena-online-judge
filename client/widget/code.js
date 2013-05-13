@@ -4,12 +4,13 @@ var codeid = 0;
 exports = new widget(function(data,callback){
 	var path = data.path;
 	async.parallel({
-		"contest": function(cb){ rpc("contest.display",path[1],cb); },
-		"problem": function(cb){ rpc("problem.display",path[3],cb); },
+		"cp": function(cb){ rpc("contest.problem",{"contest":path[1],"problem":path[3]},cb); },
 		"code": function(cb){ rpc("code.display",codeid=parseInt(path[5]),cb); }
 	}, function(error,result){
+		if(error==="unauthorized"){ callback("redirect",path.slice(0,4).hash()); return; }
 		if(error){ callback(error); return; }
-		var heading = $("<legend style='width:760px;padding:10px;'><a href='"+path.slice(0,2).hash()+"'>"+result.contest.name.htmlentities()+"</a> / <a href='"+path.slice(0,4).hash()+"'>"+result.problem.name.htmlentities()+"</a> / Code Submission</legend>");
+		var contest = result.cp.contest, problem = result.cp.problem;
+		var heading = $("<legend style='width:760px;padding:10px;'><a href='"+path.slice(0,2).hash()+"'>"+contest.name.htmlentities()+"</a> / <a href='"+path.slice(0,4).hash()+"'>"+problem.name.htmlentities()+"</a> / Code Submission</legend>");
 		heading.append($("<span class='pull-right'>").append([
 			"<a class='btn' href='"+path.slice(0,2).concat("submissions").hash()+"'>Contest Submissions</a> ",
 			"<a class='btn' href='"+path.slice(0,4).concat("submissions").hash()+"'>Problem Submissions</a>"

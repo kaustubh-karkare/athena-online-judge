@@ -18,15 +18,33 @@ rpc.on("code.display",function(socket,data,callback){
 });
 
 rpc.on("code.submit",function(socket,data,callback){
-	var id;
+	var id, contest, problem, now = misc.now();
 	async.series([
 		function(cb){ cb(socket.data.user!==null?null:"unauthorized"); },
+		function(cb){ cb(misc.isobj(data) && misc.isobj(data.language) ? null : "corrupt"); },
 		function(cb){
-			if(typeof(data)!=="object" || data===null){ cb("corrupt"); return; }
+			async.parallel([
+				function(cb2){ database.get("contest",{"_id":data.contest._id},{},function(e,r){ if(!e) contest=r; cb2(e); }) },
+				function(cb2){ database.get("problem",{"_id":data.problem._id},{},function(e,r){ if(!e) problem=r; cb2(e); }) },
+			],cb);
+		},
+		function(cb){
+			cb(
+				// the specified problem must be a part of the specified contest
+				contest.problems.filter(function(p){ return p.problem._id===problem._id; }).length===1 &&
+				// the contest start-time must be in the past or you must be an admin
+				(socket.data.auth>=config.adminlevel || now>=contest.start) &&
+				// the specified language must be allowed for the problem.
+				problem.languages.filter(function(l){ return l._id===data.language._id; }).length===1
+				// only then is this submission valid
+				? null : "unauthorized"
+			);
+		},
+		function(cb){
 			data.$collection = "code";
 			data._id = -1;
 			data.name = "meow";
-			data.time = (new Date()).valueOf();
+			data.time = now;
 			data.user = {_id:socket.data.user._id};
 			data.$id = ["name"];
 			action.insert(socket,data,function(e,r){ if(!e) id = r._id; cb(e); });

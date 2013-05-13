@@ -38,7 +38,7 @@ exports = new widget(function(data,callback){
 			table1.append("<tr><td>"+su("password")+"</td><td><input type='password' name='password' value='"+(reg?"":result.user.password.quotes())+"'></td></tr>");
 			table1.append("<tr><td>"+su("realname")+"</td><td><input type='text' name='realname' value='"+(reg?"":result.user.realname.quotes())+"'></td></tr>");
 			if(auth.level>=config.adminlevel){
-				var auth_select = plugin.selection({options:schema.user.auth.options,initial:result.user.auth})
+				var auth_select = plugin.selection({options:schema.user.auth.options,initial:result.user.auth});
 				table1.append($("<tr>").append( $("<td>").append(su("auth")), $("<td>").append(auth_select.node) ));
 			} else var auth_select = null;
 			var right = form.append("<div class='half'>").children().last();
@@ -76,7 +76,7 @@ exports = new widget(function(data,callback){
 				}
 				var keys = [];
 				data.groups = misc.array2object(keys,result.set.filter(function(set){
-					return set.freedom==="1" || auth.level>=config.adminlevel;
+					return reg || set.freedom==="1" || auth.level>=config.adminlevel;
 				}).map(function(set){ keys.push(set._id); return set.groups(); }));
 				rpc("user."+(reg?"create":"modify"),data,function(e,r){
 					if(!e && !reg && r._id===result.user._id) itc.broadcast("auth",r);

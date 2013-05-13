@@ -3,7 +3,9 @@ var misc = exports = {};
 misc.nop = function(){};
 misc.echo = function(){ console.log(arguments); };
 misc.echo2 = function(){ console.log(JSON.stringify(arguments)); };
-misc.timestamp = function(){ return (new Date().getTime()); };
+misc.now = function(){ return (new Date().getTime()); };
+
+misc.isobj = function(obj){ return typeof(obj)==="object" && !Array.isArray(obj) && obj!==null; };
 
 misc.hrsize = function(b){ // human readable size
 	if(b<1024) return Math.ceil(b)+ "B"; b/=1024;

@@ -1,11 +1,11 @@
 
-var pages = ["register","contests"];
+var pages = ["register","contests","users","groups","sets"];
 
 exports = new widget(function(data,callback){
 	var path = data.path;
 	var links = $("<ul class='nav nav-list'>"), last;
 	pages.forEach(function(name){
-		if(name==="register" && auth.level>0) name = "account";
+		if(name==="register" && auth.user!==null) name = "account";
 		last = $("<li><a href='#"+name.urlencode()+"'>"+name.ucwords().htmlentities()+"</a></li>");
 		if(path[0]===name) last.addClass("active");
 		links.append(last);

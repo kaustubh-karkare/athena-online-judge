@@ -3,13 +3,13 @@ exports = new widget(function(data,callback){
 	if(data.path[2]==="problem" && data.path[3]!==undefined){ callback("load","problem"); return; }
 	if(data.path[2]!==undefined && data.path[2]!=="submissions"){ callback("redirect",data.path.slice(0,2).hash()); return; }
 	async.series([
-		function(cb){ rpc("contest.display",data.path[1],cb); }
+		function(cb){ rpc("contest.problem",{"contest":data.path[1]},cb); }
 	], function(error,result){
 		if(error){ callback(error); return; }
-		var contest = result[0];
+		var contest = result[0].contest;
+		if(contest.problems===null && data.path[2]==="submissions"){ callback("redirect",data.path.slice(0,2).hash()); return; }
 		var legend = $("<legend style='width:760px;padding:10px;'>"+contest.name.htmlentities()+"</legend>");
-		legend.append($("<span class='pull-right'>").append([
-			"<a class='btn' href='#contests'>Contests Index</a> ",
+		legend.append($("<span class='pull-right'>").append(contest.problems===null ? [] : [
 			"<a class='btn"+(data.path[2]===undefined?" btn-primary":"")+"' href='"+data.path.slice(0,2).hash()+"'>Contests Details</a> ",
 			"<a class='btn"+(data.path[2]==="submissions"?" btn-primary":"")+"' href='"+data.path.slice(0,2).concat("submissions").hash()+"'>Contests Submissions</a> "
 		]));
@@ -24,7 +24,7 @@ exports = new widget(function(data,callback){
 				})+"</ul>")+"</td></tr>"+
 				"</tbody></table>"
 			),
-			$("<div class='half'>").append(contest.problems.map(function(p){
+			$("<div class='half'>").append(contest.problems===null ? "<div class='well well-small'>Problems Currently Unavailable.</div>" : contest.problems.map(function(p){
 				return $("<a href='#contest/"+contest.name.urlencode()+"/problem/"+p.problem.name.urlencode()+"'>"+
 					"<div class='well well-small' style='cursor:pointer;'>"+p.problem.name.htmlentities()+"</div></a>");
 				})
@@ -52,3 +52,5 @@ exports = new widget(function(data,callback){
 		callback(null,top[0]);
 	});
 });
+
+auth.change(function(){ exports.reload(); });

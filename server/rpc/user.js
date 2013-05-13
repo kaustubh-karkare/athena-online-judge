@@ -1,4 +1,9 @@
 
+rpc.on("user.list",function(socket,data,callback){
+	if(misc.isobj(data)) database.page("user",{"_id":{"$ne":0}},{},data.$page,callback);
+	else callback("corrupt");
+});
+
 rpc.on("user.display",function(socket,data,callback){
 	async.waterfall([
 		function(cb){ cb(typeof(data)==="object" && data!==null && typeof(data.username)==="string" ? null : "corrupt"); },
@@ -7,24 +12,18 @@ rpc.on("user.display",function(socket,data,callback){
 	],function(e,r){ callback(e,r); });
 });
 
-rpc.on("set.list",function(socket,data,callback){
-	database.select("set",{"_id":{"$ne":0}},{},function(e,r){ callback(e,e?null:
-		r.filter(function(set){
-			return Array.isArray(set._refs.group) && set._refs.group.length>0; })
-	); });
-});
-
-var verify_groups = function(admin,user,sets,groups){
+var verify_groups = function(admin_reg,user,sets,groups){
 	var result = [], error = false;
 	sets.forEach(function(set){
-		if(set.freedom==="1" || admin){
+		if(set.freedom==="1" || admin_reg){
+			// check for data format, and if exclusive set, ensure that exactly one item is selected
 			if(!Array.isArray(groups[set._id]) || set.exclusive==="1" && groups[set._id].length!==1) error = 1;
 			else groups[set._id].forEach(function(g){
-				if(typeof(g)!=="object" || g===null || typeof(g._id)!=="number") error = 2;
+				if(!misc.isobj(g) || typeof(g._id)!=="number") error = 2;
 				else if(set._refs.group.indexOf(g._id)===-1) error = 3;
 				else result.push(g);
 			});
-		} else result = result.concat(u.groups.filter(function(g){ return g.set._id===set._id; }));
+		} else result = result.concat(user.groups.filter(function(g){ return g.set._id===set._id; }));
 	});
 	return error?error:result;
 };
@@ -35,7 +34,7 @@ rpc.on("user.create",function(socket,data,callback){
 		function(cb){ rpc.emit("set.list",socket,null,function(e,r){ cb(e,e?null:r); }); },
 		function(s,cb){
 			data.auth = schema.user.auth.default;
-			data.groups = verify_groups(socket.data.auth>=config.adminlevel,{groups:[]},s,data.groups);
+			data.groups = verify_groups(true,{groups:[]},s,data.groups);
 			if(!Array.isArray(data.groups)){ cb("corrupt:groups"); return; }
 			data.$collection = "user";
 			cb(null);

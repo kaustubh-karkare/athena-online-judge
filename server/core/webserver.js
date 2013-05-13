@@ -12,14 +12,8 @@ app.get(/^\/$/,function(req,res){
 	var unique = (new Date).getTime();
 	if(unique==last_unique) unique++;
 	last_unique = unique;
-	
-	var html = ["<!doctype html><html><head>"];
-	html.push("<title>Athena Online Judge</title>");
-	html.push("<script>var unique = "+(++unique)+";</script>");
-	html.push(fs.readFileSync("./static/headers.html").toString());
-	html.push("<script src='client.js'></script>");
-	html.push("</head><body onLoad='main()'></body></html>");
-	res.send(html.join("\n"));
+	res.cookie("unique",unique);
+	res.sendfile("./static/headers.html");
 });
 
 app.get(/^\/download$/, function(req,res){
@@ -52,9 +46,8 @@ app.get(/.*/,function(req,res){
 
 io.sockets.on("connection", function(socket){
 	socket.data = {}; // Session Data.
-	socket.remote = socket.handshake.address; // remote.address & remote.port
+	// socket.remote = socket.handshake.address; // remote.address & remote.port
 	rpc.process(socket); // Add RPC Handlers
-	// socket.on("disconnect",function(socket){}(socket));
 });
 
 exports = {

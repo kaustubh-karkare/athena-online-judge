@@ -16,5 +16,5 @@ window.main = function(){
 		auth.autologin();
 	});
 	auth.autologin(function(){ display.load(); });
-	leader.start();
+	if(unique!==null) leader.start();
 };
