@@ -20,7 +20,7 @@ gridfs.list = function(callback){
 		function(cb){ mongodb.GridStore.list(mongodb,cb); }
 	]), function(error,result){
 		if(error){ callback(error); return; }
-		result = result.remove(config.dummy.file.id);
+		result = result.remove(constant.dummy.file.id);
 		callback(null, result);
 	});
 };

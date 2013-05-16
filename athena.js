@@ -48,6 +48,13 @@ var module_loader = function(target){
 	});
 };
 
+list.server.push("config");
+var config = {}, cpath = "config.json";
+if(fs.fileExists(cpath))
+	try { config = JSON.parse(compress(fs.fileRead(cpath))); }
+	catch(e){ console.log("Configuration file ignored due to errors."); }
+code.server += "var config = "+JSON.stringify(config)+";\n";
+
 module_loader("shared");
 module_loader("client");
 module_loader("server");

@@ -1,5 +1,5 @@
 
-if(typeof(config.database)!=="object") config.database = {};
+if(!misc.isobj(config.database)) config.database = {};
 if(config.database.host===undefined) config.database.host = "127.0.0.1";
 if(config.database.port===undefined) config.database.port = 27017;
 if(config.database.name===undefined) config.database.name = "athena";

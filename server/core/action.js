@@ -133,9 +133,11 @@ action.update = function(socket,data,callback){
 			var change = false;
 			// check to see if the keys have changed
 			Object.keys(schema[collection]).filter(function(key){
-				var x = schema[collection];
+				var x = schema[collection][key];
 				return x.primary || x.cache;
-			}).forEach(function(key){ if(item1[key]!==item2[key]) change = true; });
+			}).forEach(function(key){
+				if(item1[key]!==item2[key]) change = true;
+			});
 			if(change){
 				// queue updates for all rows that remotely forward-reference this
 				for(var key in backref) backref[key].forEach(function(id){ refs.push(function(key,id){
@@ -163,15 +165,22 @@ action.update = function(socket,data,callback){
 			}),cb);
 		},
 		// finally, perform the actual update operation
-		function(cb){
-			database.update(collection,{"_id":id},{"$set":item2},{},function(e){
-				if(!e) async.parallel(refs,cb); else cb(e);
-			});
-		}
+		function(cb){ database.update(collection,{"_id":id},{"$set":item2},{},cb); },
+		function(cb){ async.parallel(refs,cb); }
 		// return
 	], function(error){ if(error) callback(error); else callback(null,(item2._id=id,item2)); });
 };
 
+/*
+There are two mode of deletion:
+if(data.$chain) Recursive Deletion
+	All items that reference this item are first deleted and then this one is deleted.
+if(!data.$chain) Non-Recursive Deletion
+	All items that reference this item are seeked and their references broken, leaving the cached data intact.
+	This means that on the client-side, the widgets must check the reference _id to ensure that it is still valid,
+	ie - not equal to 0, before providing links to the user. This is to handle cases were a newly created item has
+	the same link as a previously deleted one.
+*/
 
 action.delete = function(socket,data,callback){
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
@@ -185,17 +194,32 @@ action.delete = function(socket,data,callback){
 		// obtain the item to be deleted from the database
 		function(cb){ database.get(collection,item2,{},function(e,i){ if(!e) item1=i; cb(e); }); },
 		// save backward-references and set marker to prevent another delete operation from starting on the same item
-		function(cb){ backref = item1._refs; if(item1._deleting) cb("deleting"); else database.update(collection,item2,{"$set":{_deleting:true}},{},cb); },
+		function(cb){
+			backref = item1._refs;
+			if(data.$chain){
+				if(item1._deleting) cb("deleting");
+				else database.update(collection,item2,{"$set":{_deleting:true}},{},cb);
+			} else cb(null);
+		},
 		// set the flag to indicate that a delete marker has been set and in case of failure must be unset. additionally, get list of files & forward-references
 		function(cb){ flag = true; specification.match.complete(collection,schema[collection],item1,function(e,i,s){ if(!e){ item1=i; save1=s; } cb(e); }); },
 		// delete all the attached files
 		function(cb){ async.parallel(save1.files.map(function(f){ return function(cb2){ gridfs.delete(f.id,cb2); }; }),cb); },
+		// delete 
+		function(cb){ if(data.$chain) cb(null); else database.delete(collection,item2,{},cb); },
 		// delete all rows that forward-reference this one (ie - have a back-reference here)
 		function(cb){
 			var refs = [];
 			for(var key in backref) backref[key].forEach(function(id){
 				refs.push(function(key,id){
-					return function(cb2){ action.delete(socket,{"$collection":key,"_id":id},cb2); };
+					if(data.$chain) return function(cb2){ action.delete(socket,{"$collection":key,"_id":id},cb2); };
+					else return function(cb2){
+						async.waterfall([
+							function(cb3){ database.get(key,{"_id":id},{},cb3); },
+							function(item,cb3){ specification.match.repair(key,schema[key],item,cb3); },
+							function(item,save,cb3){ database.update(key,{"_id":id},item,{},cb3); }
+						],cb2);
+					};
 				}(key,id));
 			});
 			async.parallel(refs,function(e){ cb(e==="deleting"?null:e); });
@@ -211,9 +235,9 @@ action.delete = function(socket,data,callback){
 			});
 			async.parallel(refs,cb);
 		},
-		function(cb){ database.delete(collection,item2,{},cb) }
+		function(cb){ if(data.$chain) database.delete(collection,item2,{},cb); else cb(null); }
 	], function(error){
-		if(error && flag) database.update(collection,item2,{"$unset":{_deleting:1}},{},misc.nop);
+		if(error && flag && data.$chain) database.update(collection,item2,{"$unset":{_deleting:1}},{},misc.nop);
 		callback(error);
 	});
 };
@@ -229,8 +253,8 @@ action.integrity = function(callback){
 		function(cb){
 			async.series([
 				// 1 : Create a dummy file for broken file references.
-				function(cb2){ gridfs.open(config.dummy.file.id,"w",cb2); },
-				function(cb2){ gridfs.close(config.dummy.file.id,cb2); },
+				function(cb2){ gridfs.open(constant.dummy.file.id,"w",cb2); },
+				function(cb2){ gridfs.close(constant.dummy.file.id,cb2); },
 				// 4.4 : Get list of all files in database
 				function(cb2){ gridfs.list(function(e,r){ if(!e) files=r; cb2(e); }) }
 			],function(e){ cb(e); });
@@ -241,8 +265,8 @@ action.integrity = function(callback){
 				return function(cb2){
 					async.waterfall(mongodb.ready(name).concat([
 						// 2 : Create dummy rows in each table for broken row references.
-						function(collection,cb3){ specification.match.repair(name,schema[name],config.dummy.reference,function(e,item){ cb3(e,collection,item); }); },
-						function(collection,item,cb3){ collection.update(config.dummy.reference,item,{upsert:true},function(e){ cb3(e,collection); }); },
+						function(collection,cb3){ specification.match.repair(name,schema[name],constant.dummy.reference,function(e,item){ cb3(e,collection,item); }); },
+						function(collection,item,cb3){ collection.update(constant.dummy.reference,item,{upsert:true},function(e){ cb3(e,collection); }); },
 						// 3 : Remove back-references from all rows of all tables.
 						function(collection,cb3){ collection.update({},{"$unset":{"_refs":1}},{multi:true},cb3); }
 					]),cb2);

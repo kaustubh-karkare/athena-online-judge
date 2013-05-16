@@ -19,16 +19,16 @@ exports = function(args){
 		}).attr("data-id",x._id).attr("data-ref",JSON.stringify(x));
 	};
 	if(args.initial){
-		if(!args.multiselect) args.initial = [args.initial];
-		args.initial = args.initial.filter(function(x){ return x._id!==0; });
+		if(!args.multiselect) args.initial = [args.initial]; // convert single item into array
+		args.initial = args.initial.filter(function(x){ return x._id!==0; }); // remove broken references
 		var flag = true, result = [];
 		args.initial.forEach(function(x){
-			flag &= ("_id" in x && !isNaN(x._id) && key in x && typeof(x[key])==="string");
+			flag &= ("_id" in x && !isNaN(x._id) && key in x && typeof(x[key])==="string"); // initial data validity check
 			if(flag) result.push("\""+x[key]+"\"");
 		});
 		// if(!flag) return false;
-		input.val(result.join(", "));
-		saved.append(args.initial.map(wrap));
+		input.val(result.join(", ")); // initial display value
+		saved.append(args.initial.map(wrap)); // add initial selection to popover-selected
 	}
 	if(typeof(args.filter)!=="object" || args.filter===null) args.filter = {};
 
@@ -99,7 +99,7 @@ exports = function(args){
 	var oldval;
 	var change = function(){
 		// prevent unnecessary calls
-		var newval = input.value; if(newval===undefined) newval = "";
+		var newval = input.val(); if(newval===undefined) newval = "";
 		if(newval===oldval) return; else oldval = newval;
 		var aid = $(popover).find("a.active").attr("data-id");
 		// build query
@@ -118,7 +118,10 @@ exports = function(args){
 				.filter(function(x){ return x[key].match(re_val)!==null && exclude.indexOf(x._id)===-1; });
 			// modifying DOM
 			if(list.length>0) $(suggested).empty().append(list.map(wrap));
-			else $(suggested).html("<a>No Suggestions</a>");
+			else $(suggested).empty().append("<a>No Suggestions</a>",args.create?
+				$("<a>").append("Create New "+args.collection.ucwords().htmlentities())
+				.click(function(){ exports._create.push([args.createdata,newval]); location.hash = args.create; }):
+			"");
 			// item activation
 			$(popover).find("a").removeClass("active");
 			$(popover).find("a[data-id="+aid+"]").addClass("active");
@@ -167,3 +170,6 @@ exports = function(args){
 
 	return {"node":input,"value":value};
 };
+
+exports._create = [];
+exports.create = function(){ return exports._create.length?exports._create.pop():null; };

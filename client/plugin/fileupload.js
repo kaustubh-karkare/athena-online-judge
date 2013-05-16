@@ -129,7 +129,7 @@ exports = function(args){
 
 	if(typeof(args.initial)==="object" && args.initial && (!Array.isArray(args.initial) || args.initial.length>0)){
 		if(!args.multiselect) args.initial = [args.initial];
-		args.initial = args.initial.filter(function(f){ return typeof(f)==="object" && f!==null && typeof(f.id)==="string" && typeof(f.name)==="string" && typeof(f.size)==="number" && f.id!==config.dummy.file.id; });
+		args.initial = args.initial.filter(function(f){ return typeof(f)==="object" && f!==null && typeof(f.id)==="string" && typeof(f.name)==="string" && typeof(f.size)==="number" && f.id!==constant.dummy.file.id; });
 	} else args.initial = [];
 
 	if(args.initial.length>0) initial = function(){

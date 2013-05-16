@@ -200,7 +200,7 @@ schema.code = {
 			items: {
 				"error": { type: "string", title: "Error Message", optional:true },
 				"time": { type: "float", title: "Run Time" },
-				"output": { type: "file", title: "Solution Output", optional: true },
+				"output": { type: "file", title: "Solution Output", optional:true },
 				"result": result
 			}
 		}
@@ -212,6 +212,7 @@ schema.code = {
 		options: { "0": "Private", "1": "Protected", "2": "Public" },
 		default: "0"
 	},
+	"key": { type: "string", title: "Access Key", optional:true },
 	"time": { type: "integer", datetime: true, title: "Submission Time" }
 };
 

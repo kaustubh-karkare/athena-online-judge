@@ -1,6 +1,18 @@
 
 var specification = exports = {};
 
+var dummycache = {};
+var dummyref = function(collection,callback){
+	if(collection in dummycache){ callback(null,dummycache[collection]); return; }
+	var dummy = {}, dummyspec = JSON.parse(JSON.stringify(schema[collection])); // bad :(
+	for(key in schema[collection])
+		if(!schema[collection][key].primary && !schema[collection][key].cache)
+			delete dummyspec[key];
+	specification.match.repair(collection,dummyspec,undefined,function(e,r){
+		if(!e) dummycache[collection] = r; callback(e,r);
+	});
+};
+
 var datatypes = {
 	"integer" : function(name,spec,obj,callback,save){
 		obj = parseInt(obj);
@@ -30,13 +42,13 @@ var datatypes = {
 		if(spec.optional && obj===null){ callback(null,null); return; }
 		// ensure that the reference object contains the required data
 		if(typeof(obj)!=="object" || obj===null || !("_id" in obj)){
-			if(save.type==="repair") callback(null,config.dummy.reference);
+			if(save.type==="repair") dummyref(spec.collection,callback);
 			else callback("corrupt:"+name);
 			return;
 		}
 		database.get(spec.collection,{_id:obj._id},{},function(error,item){
 			if(error){
-				if(error==="not-found" && save.type==="repair") callback(null,config.dummy.reference);
+				if(error==="not-found" && save.type==="repair"){ obj._id = 0; callback(null,obj); }
 				else callback(error);
 			} else {
 				var result = {};
@@ -57,7 +69,7 @@ var datatypes = {
 		if(spec.optional && obj===null){ callback(null,null); return; }
 		// ensure that the file-object contains a proper id, name and size
 		if(typeof(obj)!=="object" || obj===null  || !("id" in obj) || !("name" in obj) || !("size" in obj)){
-			if(save.type==="repair") callback(null,config.dummy.file);
+			if(save.type==="repair") callback(null,constant.dummy.file); // reconstruct using all default values
 			else callback("corrupt:"+name);
 			return;
 		}
@@ -67,7 +79,7 @@ var datatypes = {
 		gridfs.exists(obj.id,function(error,result){
 			if(error) callback(error);
 			else if(!result){
-				if(save.type==="repair") callback(null,config.dummy.file);
+				if(save.type==="repair") callback(null,constant.dummy.file);
 				else callback("not-found");
 			} else {
 				// In the list of files in the save-object, add this.
@@ -133,7 +145,6 @@ specification.match = {};
 		match_common(name,spec,obj,callback,key);
 	};
 });
-
 
 var verify_recursive = function(name,spec,callback){
 	if(typeof(spec)==="object" && spec!==null && spec.type in datatypes && spec.type!=="document"){

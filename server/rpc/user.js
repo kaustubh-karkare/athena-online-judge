@@ -7,7 +7,7 @@ rpc.on("user.list",function(socket,data,callback){
 rpc.on("user.display",function(socket,data,callback){
 	async.waterfall([
 		function(cb){ cb(typeof(data)==="object" && data!==null && typeof(data.username)==="string" ? null : "corrupt"); },
-		function(cb){ cb(!data.edit || socket.data.auth>=config.adminlevel || (socket.data.user && socket.data.user.username===data.username) ? null : "unauthorized"); },
+		function(cb){ cb(!data.edit || socket.data.auth>=constant.adminlevel || (socket.data.user && socket.data.user.username===data.username) ? null : "unauthorized"); },
 		function(cb){ database.get("user",{"username":data.username},{},function(e,r){ if(!e && !data.edit) delete r.password; cb(e,r); }); }
 	],function(e,r){ callback(e,r); });
 });
@@ -28,6 +28,22 @@ var verify_groups = function(admin_reg,user,sets,groups){
 	return error?error:result;
 };
 
+var verify_limits = function(userid,groups,sets,callback){
+	var limit = {};
+	sets.forEach(function(set){ limit[set._id]=set.limit; });
+	async.parallel(groups.map(function(g){
+		return function(cb){
+			database.get("group",{"_id":g._id},{},function(e,r){
+				cb(
+					e ? e :
+					limit[g._id]===0 ? null :
+					(!misc.isobj(r._refs) || !Array.isArray(r._refs.user) || r._refs.user.filter(function(u){ return u!==userid; }).length<limit[g.set._id] ? null : "limit-exceeded:"+g.name)
+				);
+			});
+		};
+	}),callback);
+};
+
 rpc.on("user.create",function(socket,data,callback){
 	async.waterfall([
 		function(cb){ cb(typeof(data)==="object" && data!==null && typeof(data.groups)==="object" && data.groups!==null ? null : "corrupt"); },
@@ -37,7 +53,7 @@ rpc.on("user.create",function(socket,data,callback){
 			data.groups = verify_groups(true,{groups:[]},s,data.groups);
 			if(!Array.isArray(data.groups)){ cb("corrupt:groups"); return; }
 			data.$collection = "user";
-			cb(null);
+			verify_limits(0,data.groups,s,cb);
 		}
 	],function(e){ if(e) callback(e); else action.insert(socket,data,callback); });
 });
@@ -49,14 +65,15 @@ rpc.on("user.modify",function(socket,data,callback){
 		function(u,cb){ database.select("set",{"_id":{"$ne":0}},{},function(e,r){ cb(e,e?null:u,e?null:r); }); },
 		function(u,s,cb){
 			if(socket.data.user===null){ cb("unauthorized"); return; }
-			if(socket.data.auth<config.adminlevel){
+			if(socket.data.auth<constant.adminlevel){
 				data.username = u.username;
 				data.auth = u.auth;
 			} // or else they should be provided
-			data.groups = verify_groups(socket.data.auth>=config.adminlevel,u,s,data.groups);
+			data.groups = verify_groups(socket.data.auth>=constant.adminlevel,u,s,data.groups);
 			if(!Array.isArray(data.groups)){ cb("corrupt:groups"); return; }
 			data.$collection = "user";
 			cb(null);
+			verify_limits(u._id,data.groups,s,cb);
 		}
 	],function(e){ if(e) callback(e); else action.update(socket,data,callback); });
 });

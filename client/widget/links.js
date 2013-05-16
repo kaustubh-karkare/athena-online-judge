@@ -10,7 +10,7 @@ exports = new widget(function(data,callback){
 		if(path[0]===name) last.addClass("active");
 		links.append(last);
 	});
-	if(auth.level>=config.adminlevel){
+	if(auth.level>=constant.adminlevel){
 		links.append("<li class='nav-header'>Administration</li>");
 		Object.keys(schema).forEach(function(name){
 			last = $("<li><a href='#admin/"+name.urlencode()+"/index'>"+name.ucwords().htmlentities()+"s</a></li>");

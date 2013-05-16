@@ -3,10 +3,10 @@ exports = new widget(function(data,callback){
 	if(data.path[2]==="problem" && data.path[3]!==undefined){ callback("load","problem"); return; }
 	if(data.path[2]!==undefined && data.path[2]!=="submissions"){ callback("redirect",data.path.slice(0,2).hash()); return; }
 	async.series([
-		function(cb){ rpc("contest.problem",{"contest":data.path[1]},cb); }
+		function(cb){ rpc("contest.display",{"contest":data.path[1]},cb); }
 	], function(error,result){
 		if(error){ callback(error); return; }
-		var contest = result[0].contest;
+		var contest = result[0];
 		if(contest.problems===null && data.path[2]==="submissions"){ callback("redirect",data.path.slice(0,2).hash()); return; }
 		var legend = $("<legend style='width:760px;padding:10px;'>"+contest.name.htmlentities()+"</legend>");
 		legend.append($("<span class='pull-right'>").append(contest.problems===null ? [] : [
@@ -25,8 +25,8 @@ exports = new widget(function(data,callback){
 				"</tbody></table>"
 			),
 			$("<div class='half'>").append(contest.problems===null ? "<div class='well well-small'>Problems Currently Unavailable.</div>" : contest.problems.map(function(p){
-				return $("<a href='#contest/"+contest.name.urlencode()+"/problem/"+p.problem.name.urlencode()+"'>"+
-					"<div class='well well-small' style='cursor:pointer;'>"+p.problem.name.htmlentities()+"</div></a>");
+				return ( p.problem._id===0 ? $("<span title='Broken Reference'>") : $("<a href='#contest/"+contest.name.urlencode()+"/problem/"+p.problem.name.urlencode()+"'>") )
+					.append("<div class='well well-small' style='cursor:pointer;'>"+p.problem.name.htmlentities()+"</div>");
 				})
 			),
 			$("<div class='full'>").append([

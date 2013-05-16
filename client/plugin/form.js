@@ -207,9 +207,10 @@ exports = function(args){
 		.append(result[1])
 		.append(controlgroup("","<input type='submit' class='btn btn-primary' style='width:220px;' value='"+(isNaN(id)?"Create New "+name.ucwords().quotes():"Modify "+name.ucwords().quotes()+" Details")+"'>"));
 	if(!isNaN(id)) form
-		.append(controlgroup("","<input type='button' class='btn btn-danger' style='width:220px;' value='Delete "+name.ucwords().quotes()+"'>"))
-		.find("input.btn-danger")
-		.click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc("database.delete",{"$collection":name,"_id":id},submit); });
+		.append(
+			controlgroup("",$("<input type='button' class='btn btn-danger' style='width:220px;' value='Delete "+name.ucwords().quotes()+"'>").click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?")) rpc("database.delete",{"$collection":name,"_id":id},submit); })),
+			controlgroup("",$("<input type='button' class='btn btn-danger' style='width:220px;' value='Recursively Delete "+name.ucwords().quotes()+"'>").click(function(){ if(confirm("Are you sure you want to delete this "+name.quotes()+"?") && confirm("This operation could result in an explosive chain reaction that may end up deleting more data than you intended. Are you absolutely sure you wish to proceed?")) rpc("database.delete",{"$collection":name,"_id":id,"$chain":true},submit); }))
+		);
 
 	// add handlers for submit event
 	var submitlock = false;

@@ -12,7 +12,8 @@ var legend = function(type,collection){
 var reflink = function(coll,obj){
 	if($.type(obj)!=="object") return;
 	var key = misc.primary(coll);
-	return "<a href='"+["admin",coll,"edit",obj[key]].hash()+"'>"+obj[key].htmlentities()+"</a>";
+	if(obj._id===0) return "<span title='Broken Reference'>"+obj[key].htmlentities()+"</span>";
+	else return "<a href='"+["admin",coll,"edit",obj[key]].hash()+"'>"+obj[key].htmlentities()+"</a>";
 };
 
 var filelink = function(obj){
@@ -57,7 +58,7 @@ exports = new widget(function(data,callback){
 	var path = data.path;
 	var key = misc.primary(path[1]), select = {$collection:path[1]}; select[key] = path[3];
 	async.series([
-		function(cb){ if(auth.level<config.adminlevel) cb("redirect",""); else cb(null); },
+		function(cb){ if(auth.level<constant.adminlevel) cb("redirect",""); else cb(null); },
 		function(cb){ cb(path[1] in schema?null:"unknown-collection"); },
 		function(cb){
 			if(path[2]==="new") cb(null);

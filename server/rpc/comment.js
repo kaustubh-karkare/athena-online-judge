@@ -6,7 +6,7 @@ rpc.on("comment.load",function(socket,data,callback){ // data = location
 		function(cb){ cb(typeof(data)==="string"?null:"corrupt:data"); },
 		function(cb){
 			async.parallel(
-				socket.data.auth>=config.adminlevel ?
+				socket.data.auth>=constant.adminlevel ?
 				[function(cb2){ database.select("comment",{"location":data,"replyto":null},{},cb2); }] :
 				[function(cb2){ database.select("comment",{"location":data,"replyto":null,"access":"1"},{},cb2); }].concat(
 					socket.data.user===null ? [] :
@@ -50,7 +50,7 @@ rpc.on("comment.delete",function(socket,data,callback){
 	async.series([
 		function(cb){ cb(typeof(data)==="object" && data!==null && !isNaN(data._id=parseInt(data._id))?null:"corrupt") },
 		function(cb){
-			if(socket.data.auth>=config.adminlevel) cb(null);
+			if(socket.data.auth>=constant.adminlevel) cb(null);
 			else if(socket.data.user) database.get("comment",{"_id":data._id},{},function(e,r){
 				cb(r.user._id===socket.data.user._id ? null : "unauthorized");
 			});
@@ -65,7 +65,7 @@ rpc.on("comment.delete",function(socket,data,callback){
 
 rpc.on("comment.access",function(socket,data,callback){
 	async.series([
-		function(cb){ cb(socket.data.auth>=config.adminlevel?null:"unauthorized"); },
+		function(cb){ cb(socket.data.auth>=constant.adminlevel?null:"unauthorized"); },
 		function(cb){ cb(typeof(data)==="object" && data!==null && !isNaN(data._id=parseInt(data._id))?null:"corrupt") },
 		function(cb){ cb(data.access in schema.comment.access.options?null:"corrupt") },
 		function(cb){ database.update("comment",{"_id":data._id},{"$set":{"access":data.access}},{},cb); }

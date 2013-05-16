@@ -18,9 +18,10 @@ rpc.on("group.display",function(socket,data,callback){
 
 rpc.on("group.create",function(socket,data,callback){
 	async.waterfall([
-		function(cb){ cb(misc.isobj(data) && misc.isobj(data.owner) ? null : "corrupt"); },
+		function(cb){ cb(misc.isobj(data) && misc.isobj(data.owner) && misc.isobj(data.set) ? null : "corrupt"); },
 		function(cb){ data.$collection = "group"; cb(socket.data.user!==null ? null : "unauthorized"); },
-		function(cb){ data.owner = {"_id":socket.data.user._id}; cb(null); }
+		function(cb){ data.owner = {"_id":socket.data.user._id}; cb(null); },
+		function(cb){ database.get("set",{"_id":data.set._id},{},function(e,r){ cb(e?e:r.create==="0"?"not-allowed":null); }); }
 	],function(e){ if(!e) action.insert(socket,data,callback); else callback(e); });
 });
 
@@ -29,8 +30,8 @@ rpc.on("group.update",function(socket,data,callback){
 	async.series([
 		function(cb){ cb(misc.isobj(data) && typeof(data._id)==="number" && misc.isobj(data.owner) && typeof(data.owner._id)==="number" ? null : "corrupt"); },
 		function(cb){ data.$collection = "group"; database.get("group",{"_id":data._id},{},function(e,r){ if(!e) group=r; cb(e); }); },
-		function(cb){ cb(socket.data.auth>=config.adminlevel || group.owner._id===data.owner._id ? null : "unauthorized"); },
-		function(cb){ if(socket.data.auth<config.adminlevel) data.owner = {"_id":socket.data.user._id}; cb(null); }
+		function(cb){ cb(socket.data.user!==null && (socket.data.auth>=constant.adminlevel || group.owner._id===data.owner._id) ? null : "unauthorized"); },
+		function(cb){ if(socket.data.auth<constant.adminlevel) data.owner = {"_id":socket.data.user._id}; cb(null); }
 	],function(e){ if(!e) action.update(socket,data,callback); else callback(e); });
 });
 

@@ -7,10 +7,15 @@ exports = new widget(function(data,callback){
 		function(cb){ if(create) cb(null); else rpc("group.display",data.path[1],cb); }
 	],function(error,result){
 		if(error){ callback(error); return; }
-		var group = create ? {"name":"","desc":"","owner":auth.user,"set":null} : result[0];
+		var group = result[0];
+		if(create){
+			var x = plugin.suggestion.create();
+			if(x===null) x = [null,""];
+			group = {"name":x[1],"desc":"","owner":auth.user,"set":x[0]};
+		}
 
-		var edit = false;
-		var allowed = (auth.level>=config.adminlevel || (auth.user!==null && group.owner._id===auth.user._id));
+		var edit = false, admin = (auth.level>=constant.adminlevel);
+		var allowed = admin || (auth.user!==null && group.owner._id===auth.user._id);
 		if(create) edit = true;
 		else if(data.path[2]==="edit"){
 			if(!allowed){ callback("redirect",data.path.slice(0,2).hash()); return; }
@@ -39,13 +44,17 @@ exports = new widget(function(data,callback){
 		};
 		f1("name",edit?"<input type='text' name='name' value='"+group.name.quotes()+"'>":group.name.htmlentities() );
 		f1("desc",edit?"<input type='text' name='desc' value='"+group.desc.quotes()+"'>":group.desc.htmlentities() );
-		f1("owner","<a href='"+["user",group.owner.username].hash()+"'>"+group.owner.realname.htmlentities()+"</a>" );
-		if(edit){
-			// var owner = plugin.suggestion({"initial":group.owner,"collection":"user"}); f1("owner",owner.node);
-			var set = plugin.suggestion({"initial":group.set,"collection":"set"}); f1("set",set.node);
+		if(admin && edit){
+			var owner = plugin.suggestion({"initial":group.owner,"collection":"user"}); f1("owner",owner.node);
 		} else {
-			f1("owner","<a href='"+["user",group.owner.username].hash()+"'>"+group.owner.realname.htmlentities()+"</a>");
-			f1("set","<a href='"+["set",group.set.name].hash()+"'>"+group.set.name.htmlentities()+"</a>");
+			if(group.owner._id===0) f1("owner",group.owner.realname.htmlentities());
+			else f1("owner","<a href='"+["user",group.owner.username].hash()+"'>"+group.owner.realname.htmlentities()+"</a>" );
+		}
+		if(edit){
+			var set = plugin.suggestion({"initial":group.set,"collection":"set","filter":{"create":"1"}}); f1("set",set.node);
+		} else {
+			if(group.set._id===0) f1("set",group.set.name.htmlentities());
+			else f1("set","<a href='"+["set",group.set.name].hash()+"'>"+group.set.name.htmlentities()+"</a>");
 		}
 		if(edit){
 			form.append($("<div style='text-align:center;'>").append(
@@ -63,7 +72,7 @@ exports = new widget(function(data,callback){
 				var data = {
 					"name":this.name.value,
 					"desc":this.desc.value,
-					"owner":group.owner, // "owner":owner.value(),
+					"owner": (admin && edit ? owner.value() : group.owner),
 					"set":set.value()
 				};
 				if(!create) data._id = group._id;

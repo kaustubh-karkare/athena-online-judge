@@ -7,5 +7,5 @@ specification
 action # database, gridfs, specification
 rpc # database, gridfs, specification, action
 webserver # rpc
-judge
+judge # database, gridfs
 main

@@ -5,7 +5,7 @@ rpc.on("set.list",function(socket,data,callback){
 		database.select("set",{"_id":{"$ne":0}},{},function(e,r){
 			callback(e,e?null:
 				r.filter(function(set){
-					return Array.isArray(set._refs.group) && set._refs.group.length>0;
+					return set.create || (misc.isobj(set._refs) && Array.isArray(set._refs.group) && set._refs.group.length>0);
 				})
 			);
 		});

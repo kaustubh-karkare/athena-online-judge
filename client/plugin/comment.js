@@ -26,12 +26,12 @@ var format = function(interface,comment){
 		$("<div style='color:#999; font-size:11px;'>").append([datetime.abs(comment.time)].concat( auth.user===null ? [] : [
 			" &middot; ",
 			r1 = $("<a class='reply'>Reply</a>")
-		]).concat( auth.level<config.adminlevel || comment.replyto!==null ? [] : [
+		]).concat( auth.level<constant.adminlevel || comment.replyto!==null ? [] : [
 			" &middot; ",
 			$("<a>"+schema.comment.access.options[comment.access]+"</a>").click(function(){
 				rpc("comment.access",{"_id":comment._id,"access":comment.access==="0"?"1":"0"},function(e){ if(!e) interface.reload(); else display.error(e); });
 			})
-		]).concat( auth.level<config.adminlevel && (auth.user===null || auth.user._id!==comment.user._id ) ? [] : [
+		]).concat( auth.level<constant.adminlevel && (auth.user===null || auth.user._id!==comment.user._id ) ? [] : [
 			" &middot; ",
 			$("<a>Delete</a>").click(function(){
 				if(confirm("Are you sure you want to delete this comment?")) rpc("comment.delete",{"_id":comment._id},function(e){ if(!e) interface.reload(); else display.error(e); });

@@ -8,13 +8,13 @@ exports = new widget(function(data,callback){
 	if(path[4]===undefined) path[4] = "statement";
 	else if(tabs.indexOf(path[4])===-1){ callback("redirect",path.slice(0,4).hash()); return; }
 	async.parallel([
-		function(cb){ rpc("contest.problem",{"contest":path[1],"problem":path[3]},cb); }
+		function(cb){ rpc("problem.display",{"contest":path[1],"problem":path[3]},cb); }
 	], function(error,result){
 		if(error==="unauthorized"){ callback("redirect",path.slice(0,2).hash()); return; }
 		if(error){ callback(error); return; }
 		contest = result[0].contest;
 		problem = result[0].problem;
-		if(auth.level<config.adminlevel && path[4]==="tutorial" && problem.tutorial===null){ callback("redirect",path.slice(0,4).hash()); return; }
+		if(auth.level<constant.adminlevel && path[4]==="tutorial" && problem.tutorial===null){ callback("redirect",path.slice(0,4).hash()); return; }
 
 		var heading = $("<legend style='width:760px;padding:10px;'><a href='"+path.slice(0,2).hash()+"'>"+contest.name.htmlentities()+"</a> / "+
 			problem.name.htmlentities()+"</legend>");
@@ -52,7 +52,7 @@ exports = new widget(function(data,callback){
 					if(f.length) url = "download?id="+f[0].id+"&name="+url; else return;
 					if(e.nodeName==="A"){ e.href = url; e.target='new'; } else e.src = url;
 				});
-				if(auth.level>=config.adminlevel) main.append($("<div style='text-align:center;margin-top:20px;'>").append([
+				if(auth.level>=constant.adminlevel) main.append($("<div style='text-align:center;margin-top:20px;'>").append([
 					"<a href='"+path.slice(0,5).concat("edit").hash()+"' class='btn'>Edit "+path[4].ucwords()+"</a>"
 				]));
 				main.append("<br><br><legend>Comments/Clarifications</legend>");

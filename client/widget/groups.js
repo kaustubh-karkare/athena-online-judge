@@ -3,7 +3,7 @@ exports = new widget(function(data,callback){
 	var top = $("<div>");
 	var legend = $("<legend>Group Index</legend>").appendTo(top);
 	var span = $("<span class='pull-right'>").appendTo(legend);
-	span.append("<a href='#group-new' class='btn'>Create New Group</a>");
+	if(auth.user!==null) span.append("<a href='#group-new' class='btn'>Create New Group</a>");
 	top.append(plugin.pagination({
 		"rpc":"group.list",
 		"page":{"size":25},

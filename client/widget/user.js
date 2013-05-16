@@ -1,6 +1,4 @@
 
-// #user/dog/edit
-
 exports = new widget(function(data,callback){
 	var reg = data.path[0]==="register";
 	if(!reg) data.path[0] = "user";
@@ -16,7 +14,7 @@ exports = new widget(function(data,callback){
 	var btn_view = "<a class='btn' href='"+data.path.slice(0,2).hash()+"'>View User Details</a>";
 	var btn_edit = "<a class='btn' href='"+data.path.slice(0,2).concat("edit").hash()+"'>Edit User Details</a>";
 
-	var edit = auth.level>=config.adminlevel || (auth.user && auth.user.username===data.path[1]); // authorized to edit
+	var edit =  (auth.user && (auth.user.username===data.path[1] || auth.level>=constant.adminlevel)); // authorized to edit
 	var edit2 = edit && data.path[2]==="edit"; // desire to edit + authorized
 	if(!reg && !edit2 && [undefined,"submissions"].indexOf(data.path[2])===-1)
 		{ callback("redirect",data.path.slice(0,2).hash()); return; }
@@ -28,16 +26,16 @@ exports = new widget(function(data,callback){
 		if(error){ callback(error); return; }
 
 		if(reg || edit2){
-			headbtn.append(btn_subm,btn_view);
+			if(!reg) headbtn.append(btn_subm,btn_view);
 			var form = $("<form>");
 			var left = form.append("<div class='half'>").children().last();
 			var table1 = left.append("<table class='table table-striped'>").children().last();
 			var su = function(k){ return schema.user[k].title.htmlentities(); };
 			table1.append("<tr><th>Field</th><th>Value</th></tr>");
-			table1.append("<tr><td>"+su("username")+"</td><td>"+(reg||auth.level>=config.adminlevel?"<input type='text' name='username' value='"+(reg?"":result.user.username.quotes())+"'>":result.user.username)+"</td></tr>");
+			table1.append("<tr><td>"+su("username")+"</td><td>"+(reg||auth.level>=constant.adminlevel?"<input type='text' name='username' value='"+(reg?"":result.user.username.quotes())+"'>":result.user.username)+"</td></tr>");
 			table1.append("<tr><td>"+su("password")+"</td><td><input type='password' name='password' value='"+(reg?"":result.user.password.quotes())+"'></td></tr>");
 			table1.append("<tr><td>"+su("realname")+"</td><td><input type='text' name='realname' value='"+(reg?"":result.user.realname.quotes())+"'></td></tr>");
-			if(auth.level>=config.adminlevel){
+			if(auth.level>=constant.adminlevel){
 				var auth_select = plugin.selection({options:schema.user.auth.options,initial:result.user.auth});
 				table1.append($("<tr>").append( $("<td>").append(su("auth")), $("<td>").append(auth_select.node) ));
 			} else var auth_select = null;
@@ -46,9 +44,9 @@ exports = new widget(function(data,callback){
 			table2.append("<tr><th>Set</th><th>Groups</th></tr>");
 			result.set.forEach(function(set){
 				var initial = reg ? [] : result.user.groups.filter(function(g){ return g.set._id===set._id; });
-				if(set.freedom==="1" || auth.level>=config.adminlevel || reg){
+				if(set.freedom==="1" || auth.level>=constant.adminlevel || reg){
 					if(set.exclusive==="1") initial = reg ? null : initial[0];
-					var refinput = plugin.suggestion({"multiselect":set.exclusive==="0","initial":initial,"collection":"group","filter":{"set":{"_id":set._id}}});
+					var refinput = plugin.suggestion({"multiselect":set.exclusive==="0","initial":initial,"collection":"group","filter":{"set":{"_id":set._id}},"create":set.create?"#group-new":false,"createdata":set});
 					var x = refinput.node;
 					set.groups = function(){
 						var val = refinput.value();
@@ -56,7 +54,8 @@ exports = new widget(function(data,callback){
 					};
 				} else {
 					var x = "<ul style='margin-bottom:0px;'>"+initial.map(function(g){
-						return "<li><a href='"+["group",g.name].hash()+"'>"+g.name.htmlentities()+"</a></li>";
+						if(g._id===0) return "<li>"+g.name.htmlentities()+"</li>";
+						else return "<li><a href='"+["group",g.name].hash()+"'>"+g.name.htmlentities()+"</a></li>";
 					}).join("")+"</ul>";
 				}
 				table2.append($("<tr>").append( $("<td>").append(set.name.htmlentities()), $("<td>").append(x) ));
@@ -70,16 +69,16 @@ exports = new widget(function(data,callback){
 			form.submit(function(){
 				var data = reg ? {} : {"_id":result.user._id}, that = this;
 				["realname","password"].forEach(function(key){ data[key] = that[key].value; });
-				if(reg || auth.level>=config.adminlevel){
+				if(reg || auth.level>=constant.adminlevel){
 					data.username = this.username.value;
 					if(!reg) data.auth = auth_select.value();
 				}
 				var keys = [];
 				data.groups = misc.array2object(keys,result.set.filter(function(set){
-					return reg || set.freedom==="1" || auth.level>=config.adminlevel;
+					return reg || set.freedom==="1" || auth.level>=constant.adminlevel;
 				}).map(function(set){ keys.push(set._id); return set.groups(); }));
 				rpc("user."+(reg?"create":"modify"),data,function(e,r){
-					if(!e && !reg && r._id===result.user._id) itc.broadcast("auth",r);
+					if(!e && !reg && r._id===auth.user._id) itc.broadcast("auth",r);
 					if(e) display.error(e);
 					else if(!reg && r.username===result.user.username) exports.reload();
 					else location.hash = ["user",r.username].concat(reg?[]:["edit"]).hash();
@@ -102,9 +101,10 @@ exports = new widget(function(data,callback){
 						item.language.name.htmlentities(),
 						schema.code.result.options[item.result]
 					]); },
-				"click": function(item){ location.hash = path.slice(0,4).concat("code",item._id).hash(); }
+				"click": function(item){ location.hash = ["contest",item.contest.name,"problem",item.problem.name,"code",item._id].hash(); }
 			}).node;
 			callback(null,$("<div>").append([head,main])[0]);
+
 		} else {
 			headbtn.append(btn_subm);
 			if(edit) headbtn.append(btn_edit);
@@ -126,7 +126,8 @@ exports = new widget(function(data,callback){
 			});
 			for(var set in groups)
 				table2.append("<tr><td>"+set.htmlentities()+"</td><td><ul style='margin-bottom:0px;'>"+groups[set].map(function(g){
-					return "<li><a href='"+["group",g.name].hash()+"'>"+g.name.htmlentities()+"</a></li>";
+					if(g._id===0) return "<li>"+g.name.htmlentities()+"</li>";
+					else return "<li><a href='"+["group",g.name].hash()+"'>"+g.name.htmlentities()+"</a></li>";
 				}).join("")+"</ul></td></tr>");
 			callback(null,$("<div>").append([head,left,right])[0]);
 		}

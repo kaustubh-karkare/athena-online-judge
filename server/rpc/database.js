@@ -1,23 +1,23 @@
 
 rpc.on("database.insert", function(socket,data,callback){
-	if(socket.data.auth<config.adminlevel) callback("unauthorized");
+	if(socket.data.auth<constant.adminlevel) callback("unauthorized");
 	else action.insert(socket,data,callback);
 });
 
 rpc.on("database.update", function(socket,data,callback){
-	if(socket.data.auth<config.adminlevel) callback("unauthorized");
+	if(socket.data.auth<constant.adminlevel) callback("unauthorized");
 	else action.update(socket,data,callback);
 });
 
 rpc.on("database.delete", function(socket,data,callback){
-	if(socket.data.auth<config.adminlevel) callback("unauthorized");
+	if(socket.data.auth<constant.adminlevel) callback("unauthorized");
 	else action.delete(socket,data,callback);
 });
 
 // The following functions are not part of the action module because they do not change the database state.
 
 rpc.on("database.specific",function(socket,data,callback){
-	if(socket.data.auth<config.adminlevel){ callback("unauthorized"); return; }
+	if(socket.data.auth<constant.adminlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection;
 	else { callback("unknown-collection"); return; }
 	var item={"$nin":{"$ne":0}}, result;
@@ -33,7 +33,7 @@ rpc.on("database.specific",function(socket,data,callback){
 });
 
 rpc.on("database.pagination",function(socket,data,callback){
-	if(socket.data.auth<config.adminlevel){ callback("unauthorized"); return; }
+	if(socket.data.auth<constant.adminlevel){ callback("unauthorized"); return; }
 	if(typeof(data)==="object" && data!==null && data.$collection in schema) var collection = data.$collection; else { callback("unknown-collection"); return; }
 	var item, result;
 	async.series([
