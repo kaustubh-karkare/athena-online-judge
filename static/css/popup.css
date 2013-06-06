@@ -1,0 +1,31 @@
+@font-face { font-family:Consolas; src: url('../fonts/consolas.ttf'); }
+@font-face { font-family:Calibri; src: url('../fonts/calibri.ttf'); }
+
+table {
+	width: 100%;
+	border-collapse:collapse;
+}
+th, td {
+	border-top: 1px solid #ddd;
+	border-left: 1px solid #ddd;
+}
+th:last-child, td:last-child {
+	border-right: 1px solid #ddd;
+}
+th {
+	background: #f5f5f5;
+	font-family: Calibri;
+	padding: 8px;
+	font-size:14px;
+}
+td {
+	vertical-align:top;
+	border-bottom: 1px solid #ddd;
+}
+pre {
+	font-family: Consolas;
+	font-size: 12px;
+	padding: 8px;
+	width: 100px;
+	overflow: scroll;
+}

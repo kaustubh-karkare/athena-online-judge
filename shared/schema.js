@@ -198,9 +198,10 @@ schema.code = {
 		items: {
 			type: "object",
 			items: {
-				"error": { type: "string", title: "Error Message", optional:true },
 				"time": { type: "float", title: "Run Time" },
+				"input": { type: "file", title: "Solution Input", optional:true },
 				"output": { type: "file", title: "Solution Output", optional:true },
+				"expected": { type: "file", title: "Expected Output", optional:true },
 				"result": result
 			}
 		}
@@ -209,7 +210,7 @@ schema.code = {
 	"access": {
 		type: "select",
 		title: "Access",
-		options: { "0": "Private", "1": "Protected", "2": "Public" },
+		options: { "0": "Private", "1": "Public" },
 		default: "0"
 	},
 	"key": { type: "string", title: "Access Key", optional:true },

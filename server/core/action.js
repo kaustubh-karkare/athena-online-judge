@@ -248,15 +248,16 @@ action.delete = function(socket,data,callback){
 
 
 action.integrity = function(callback){
-	var files = [];
+	var files; // reference to the db.fs.files collection
 	async.series([
 		function(cb){
 			async.series([
-				// 1 : Create a dummy file for broken file references.
+				// 1.1 : Create a dummy file for broken file references.
 				function(cb2){ gridfs.open(constant.dummy.file.id,"w",cb2); },
 				function(cb2){ gridfs.close(constant.dummy.file.id,cb2); },
-				// 4.4 : Get list of all files in database
-				function(cb2){ gridfs.list(function(e,r){ if(!e) files=r; cb2(e); }) }
+				// 1.2 Initially assume all files to be orphans.
+				function(cb2){ mongodb.collection("fs.files",function(e,r){ if(!e) files=r; cb2(e); }); },
+				function(cb2){ files.update({},{"$set":{"orphan":true}},{multi:true},cb2); }
 			],function(e){ cb(e); });
 		},
 		function(cb){
@@ -282,7 +283,8 @@ action.integrity = function(callback){
 						function(collection,cb3){
 							var cursor = collection.find({"_id":{"$ne":0}});
 							var process = function(e,item){
-								if(e===null && item===null) cb3(null);
+								if(e) cb3(e);
+								else if(item===null) cb3(null);
 								else async.waterfall([
 									function(cb4){ cb4(e); },
 									// 4.1 : Fix the current object
@@ -299,10 +301,11 @@ action.integrity = function(callback){
 										});
 										async.parallel(refs,function(e){ cb4(e,r,s); });
 									},
-									// 4.5 : Update files
+									// 4.4 : Update files
 									function(r,s,cb4){
-										s.files.forEach(function(f){ files.remove(f.id); });
-										cb4(null);
+										async.parallel(s.files.map(function(f){
+											return function(cb5){ files.update({"_id":f.id},{"$unset":{"orphan":true}},{},cb5); };
+										}),cb4);
 									}
 								], function(e){ if(e) cb3(e); else cursor.nextObject(process); })
 							}; // process
@@ -314,9 +317,16 @@ action.integrity = function(callback){
 		}, // function:cb
 		function(cb){
 			// 4.6 Delete all unreferenced files.
-			async.parallel(files.map(function(f){
-				return function(cb2){ gridfs.delete(f.id,cb2); };
-			}),cb);
+			var cursor = files.find({"orphan":true},{});
+			var process = function(e,item){
+				if(e) cb(e);
+				else if(item===null) cb(null);
+				else gridfs.delete(item._id,function(e){
+					if(e) cb(e);
+					else cursor.nextObject(process);
+				});
+			};
+			cursor.nextObject(process);
 		}
 	],function(e){ callback(e); });
 

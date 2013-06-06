@@ -28,7 +28,7 @@ itc.broadcast = function(name){
 
 window.addEventListener('storage',function(event){
 	// Discard parts that have timed out.
-	var now = misc.timestamp();
+	var now = misc.now();
 	Object.keys(accesstime).forEach(function(key){
 		if(now-accesstime[key]<=timeout) return;
 		delete incomplete[key];

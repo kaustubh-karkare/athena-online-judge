@@ -23,12 +23,25 @@ rpc.on("code.display",function(socket,data,callback){
 		function(cb){ 
 			cb(
 				(socket.data.auth>=constant.adminlevel) ||
-				(result.code.access==="0" && socket.data.user!==null && socket.data.user._id===result.code.user._id) ||
-				(result.code.access==="1" && data.key===result.code.key) ||
-				(result.code.access==="2")
+				(result.code.access==="0" && (socket.data.user!==null && socket.data.user._id===result.code.user._id || data.key===result.code.key)) ||
+				(result.code.access==="1")
 				? null : "unauthorized");
 		},
-		function(cb){ cb(result.contest.problems.filter(function(p){ return p.problem._id===result.problem._id; }).length===1 ? null : "unauthorized"); }
+		function(cb){
+			cb(
+				result.contest._id === result.code.contest._id &&
+				result.problem._id === result.code.problem._id &&
+				result.contest.problems.filter(function(p){ return p.problem._id===result.problem._id; }).length===1
+				? null : "unauthorized");
+		},
+		function(cb){
+			// share the key only if admin or if code belongs to current user
+			if( (socket.data.auth>=constant.adminlevel) ||
+				(socket.data.user!==null && socket.data.user._id===result.code.user._id)
+				);
+			else delete result.code.key;
+			cb(null);
+		}
 	],function(e){
 		var r;
 		if(!e){
@@ -39,6 +52,12 @@ rpc.on("code.display",function(socket,data,callback){
 		callback(e,r);
 	});
 });
+
+var randomkey = function(){ // Source: http://stackoverflow.com/a/10727155/903585
+	var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", length = 20, result = "";
+	for(var i=0; i<length; ++i) result += chars[Math.round(Math.random()*(chars.length-1))];
+	return result;
+};
 
 rpc.on("code.submit",function(socket,data,callback){
 	var id, contest, problem, now = misc.now();
@@ -68,6 +87,7 @@ rpc.on("code.submit",function(socket,data,callback){
 			data._id = -1;
 			data.name = "meow";
 			data.time = now;
+			data.key = randomkey();
 			data.user = {_id:socket.data.user._id};
 			data.$id = ["name"];
 			action.insert(socket,data,function(e,r){ if(!e) id = r._id; cb(e); });

@@ -1,5 +1,6 @@
 
 var gridfs = exports = {};
+var basename = require("path").basename;
 
 var openfiles = {}, timeout = function(id,done){
 	if(!(id in openfiles)) return;
@@ -85,11 +86,13 @@ gridfs.close = function(id,callback){
 var blocksize = 100*1024;
 
 var transfer = function(type,id,path,callback){
-	id = String(id); path = String(path);
+	if(type===true) id = String(id);
+	else id = (id===null?null:String(id));
+	path = String(path);
 	var offset = 0, size, file;
 	if(typeof(callback)!=="function") callback = misc.nop;
 	async.series([
-		function(cb){ gridfs.open(id,(type?"r":"w"),function(e,r){ if(!e) size=r.length; cb(e); }); },
+		function(cb){ gridfs.open(id,(type?"r":"w"),function(e,r){ if(!e){ size=r.length; if(id===null) id=r.id; } cb(e); }); },
 		function(cb){ if(type) cb(null); else fs.stat(path,function(e,r){ if(!e) size=r.size; cb(e); }) },
 		function(cb){ fs.open(path,(type?"w":"r"),"777",function(e,r){ file=r; cb(e); }); },
 		function(cb){
@@ -116,7 +119,10 @@ var transfer = function(type,id,path,callback){
 		},
 		function(cb){ gridfs.close(id,cb); },
 		function(cb){ fs.close(file,cb); }
-	],function(e){ callback(e); });
+	],function(e){
+		if(type) callback(e);
+		else callback(e,e?null:{"id":id,"size":size,"name":basename(path)});
+	});
 };
 
 gridfs.extract = function(id,path,callback){
@@ -124,5 +130,5 @@ gridfs.extract = function(id,path,callback){
 };
 
 gridfs.insert = function(id,path,callback){
-	transfer(false,id,path,function(e){ callback(e,e?undefined:id); });
+	transfer(false,id,path,callback);
 };

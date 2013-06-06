@@ -90,6 +90,40 @@ misc.emitter.prototype.emit = function(name){
 
 
 
+misc.fnq = function(handler){ this.reset(handler); };
+misc.fnq.prototype.reset = function(handler){
+	this.ready = true;
+	this.error = false;
+	this.queue = [];
+	this.handler = handler;
+};
+misc.fnq.prototype.next = function(){
+	var that = this;
+	return function(error){
+		if(error){
+			that.error = true;
+			if(typeof(that.handler)==="function")
+				that.handler(error);
+			return;
+		} else if(that.queue.length>0){
+			that.queue.shift()( that.next() );
+		} else {
+			that.ready = true;
+		}
+	};
+};
+misc.fnq.prototype.push = function(fn){
+	if(this.error) return false;
+	if(!this.ready) this.queue.push(fn);
+	else {
+		this.ready = false;
+		fn(this.next());
+	}
+	return true;
+};
+
+
+
 misc.array2object = function(array1,array2){
 	var result = {}, len = Math.min(array1.length,array2.length);
 	for(i=0;i<len;++i) if(typeof(array1[i])!="object" && array1[i]!==undefined) result[array1[i]] = array2[i];

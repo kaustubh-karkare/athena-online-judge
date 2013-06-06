@@ -104,15 +104,16 @@ var process = function(){
 			var tests = []; code.results = [];
 			problem.tests.forEach(function(test){
 				tests.push(function(cb2){
-					var fi, fo; // gfs actual input & output files
+					var fi, fo, fe; // gfs actual input & output & expected files
+					var pi = env+"actual-input.txt", po = env+"actual-output.txt", pe = env+"expected.txt";
 					async.series([
 						// create the expected and actual IO files (assuming judge needs them)
 						function(cb3){
 							async.parallel([
 								function(cb4){ gridfs.extract(test.input.id,env+"input.txt",cb4); },
-								function(cb4){ gridfs.extract(test.output.id,env+"output.txt",cb4); }
-								//,function(cb4){ gridfs.open(null,"w",function(e,r){ if(!e) fi=r.id; cb4(e); }); }
-								//,function(cb4){ gridfs.open(null,"w",function(e,r){ if(!e) fo=r.id; cb4(e); }); }
+								function(cb4){ gridfs.extract(test.output.id,env+"output.txt",cb4); },
+								function(cb4){ fs.open(pi,"w","777",function(e,fd){ if(!e) fi=fd; cb4(e); }); },
+								function(cb4){ fs.open(po,"w","777",function(e,fd){ if(!e) fo=fd; cb4(e); }); }
 							],cb3);
 						},
 						// spawn the processes, interlink their IO streams & track evaluation
@@ -121,30 +122,61 @@ var process = function(){
 							var s = spawn(solution.execute[0],solution.execute[1]);
 							var starttime = new Date().valueOf();
 							var timer = setTimeout(function(){ end("TLE"); },test.timelimit*1000);
+							var fiq = new misc.fnq(), foq = new misc.fnq();
 							var result = null, end = function(x){
 								if(result!==null) return;
 								var endtime = new Date().valueOf();
 								j.kill("SIGKILL"); s.kill("SIGKILL");
 								clearTimeout(timer);
-								if(!(x in schema.code.result.options)){ cb3("unknown-result"); return; }
-								code.results.push({
-									"error":"",
-									"time":(endtime-starttime)/1000,
-									"output":null,
-									"result":x
+								fiq.push(function(cb4){ fs.close(fi,cb4); });
+								fiq.push(function(cb4){ gridfs.insert(null,pi,function(e,r){ fi=r; cb4(e); }); });
+								foq.push(function(cb4){ fs.close(fo,cb4); });
+								fiq.push(function(cb4){ gridfs.insert(null,po,function(e,r){ fo=r; cb4(e); }); });
+								async.parallel([
+									function(cb4){ fiq.push(function(cb5){ cb5("end"); cb4(null); }); },
+									function(cb4){ foq.push(function(cb5){ cb5("end"); cb4(null); }); },
+									function(cb4){
+										var expected = env+"output.txt";
+										async.series([
+											function(cb5){ fs.exists(pe,function(r){ cb5(r?null:"non-existant"); }); },
+											function(cb5){ fs.stat(pe,function(e,s){ cb5(e?e:(s.isFile()?null:"non-existant")); }); },
+											function(cb5){ expected = pe; cb5(null); }
+										],function(e){
+											gridfs.insert(null,expected,function(e,r){ if(!e) fe=r; cb4(e); });
+										});
+									}
+								],function(e){
+									if(!(x in schema.code.result.options)){ cb3("unknown-result"); return; }
+									code.results.push({
+										"time":(endtime-starttime)/1000,
+										"input":fi,
+										"output":fo,
+										"expected":fe,
+										"result":x
+									});
+									cb3(null);
 								});
-								cb3(null);
 							};
 							s.readline(function(data){
 								// console.log("solution->judge",data);
 								j.writeline(data);
+								foq.push(function(cb4){
+									var buffer = new Buffer(data);
+									fs.write(fo,buffer,0,buffer.length,null,cb4);
+								});
 							});
 							var prefix = null;
 							j.readline(function(data){
 								// console.log("judge->solution",data);
 								if(prefix===null) prefix = data.trim();
-								else if(data.substr(0,prefix.length)!==prefix) s.writeline(data);
-								else end(data.substr(prefix.length).trim());
+								else if(data.substr(0,prefix.length)===prefix) end(data.substr(prefix.length).trim());
+								else {
+									s.writeline(data);
+									fiq.push(function(cb4){
+										var buffer = new Buffer(data);
+										fs.write(fi,buffer,0,buffer.length,null,cb4);
+									});
+								};
 							});
 						}
 					],function(e){ cb2(e); });
