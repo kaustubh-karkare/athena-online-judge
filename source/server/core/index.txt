@@ -1,0 +1,16 @@
+# comments indicate dependencies
+# shared files to be included before the following
+
+async
+fs
+config
+
+mongodb
+database # mongodb
+gridfs # mongodb
+specification
+action # database, gridfs, specification
+rpc # database, gridfs, specification, action
+webserver # rpc
+evaluator # database, gridfs
+main
